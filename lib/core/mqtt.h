@@ -3,7 +3,6 @@
 
 #include <PubSubClient.h>
 
-
 // MQTT PATH Structure
 // /clientid/location/deviceName/telemetry/<topic>    --> typically, used when publishing info/status
 // /clientid/location/deviceName/configure/<topic>    --> typically, used when subscribing for actions
@@ -18,9 +17,9 @@
 
 
 // MQTT Variables
-unsigned int MQTT_Retry = 125;                             // Timer to retry the MQTT connection
-long MQTT_LastTime = 0;                           // Last MQTT connection attempt time stamp
-int MQTT_errors = 0;                              // MQTT errors Counter
+unsigned int MQTT_Retry = 125;                        // Timer to retry the MQTT connection
+long MQTT_LastTime = 0;                               // Last MQTT connection attempt time stamp
+int MQTT_errors = 0;                                  // MQTT errors Counter
 
 // Initialize MQTT Client
 PubSubClient MQTTclient(wifiClient);
@@ -58,12 +57,40 @@ void mqtt_subscribe(String subpath, String subtopic) {
     else telnet_println("Error on MQTT subscription!");
 }
 
+
 void mqtt_unsubscribe(String subpath, String subtopic) {
     String topic = "";
     topic += subpath; topic += subtopic;
     if( MQTTclient.unsubscribe(topic.c_str())) telnet_println("unsubscribed to topic: " + topic);
     else telnet_println("Error on MQTT unsubscription!");
 }
+
+
+int mqtt_connect() {
+    telnet_print("Connecting to MQTT Broker ... ");
+    MQTTclient.setServer(config.MQTT_Server.c_str(), config.MQTT_Port);
+    // Attempt to connect (clientID, username, password, willTopic, willQoS, willRetain, willMessage, cleanSession)
+    if ( MQTTclient.connect(ChipID.c_str(), config.MQTT_User.c_str(), config.MQTT_Password.c_str(), (mqtt_pathtele() + "Status").c_str(), 0, false, "UShut", true)) {
+        telnet_println( "[DONE]" );
+        mqtt_subscribe(mqtt_pathconf(), "+");
+    }
+    else {
+        telnet_print( "  MQTT ERROR! ==> " );
+        telnet_println( String(MQTTclient.state()) );
+        }
+    return MQTTclient.state();
+}
+
+
+void mqtt_disconnect() {
+    mqtt_unsubscribe(mqtt_pathconf(), "+");
+    MQTTclient.disconnect();
+    telnet_println("Disconnected from MQTT Broker.");
+}
+
+
+// Adding function with project's customized MQTT actions
+#include <custommqtt.h>
 
 // Handling of received message
 void on_message(const char* topic, byte* payload, unsigned int length) {
@@ -94,30 +121,31 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
     if ( reqparam == "DeviceName") config.DeviceName = String((const char*)data["value"]);
     if ( reqparam == "Location") config.Location = String((const char*)data["value"]);
     if ( reqparam == "ClientID") config.ClientID = String((const char*)data["value"]);
-    if ( reqparam == "ONTime") config.ONTime = data["value"];
-    if ( reqparam == "SLEEPTime") config.SLEEPTime = data["value"];
-    if ( reqparam == "DEEPSLEEP") { config.DEEPSLEEP = data["value"]; storage_write(); BootESP(); }
-    if ( reqparam == "LED") config.LED = data["value"];
-    if ( reqparam == "TELNET") { config.TELNET = data["value"]; storage_write(); BootESP(); }
-    if ( reqparam == "OTA") { config.OTA = data["value"]; storage_write(); BootESP(); }
-    if ( reqparam == "WEB") { config.WEB = data["value"]; storage_write(); BootESP(); }
-    if ( reqparam == "STAMode") config.STAMode = data["value"];
+    if ( reqparam == "DEEPSLEEP") { config.DEEPSLEEP = bool(data["value"]);storage_write(); }
+    if ( reqparam == "SLEEPTime") { config.SLEEPTime = data["value"];storage_write(); }
+    if ( reqparam == "ONTime") { config.ONTime = data["value"];storage_write(); }
+    if ( reqparam == "ExtendONTime") if (bool(data["value"]) == true) Extend_time = 60;
+    if ( reqparam == "LED") config.LED = bool(data["value"]);
+    if ( reqparam == "TELNET") { config.TELNET = bool(data["value"]); storage_write(); BootESP(); }
+    if ( reqparam == "OTA") { config.OTA = bool(data["value"]); storage_write(); BootESP(); }
+    if ( reqparam == "WEB") { config.WEB = bool(data["value"]); storage_write(); BootESP(); }
+    if ( reqparam == "STAMode") config.STAMode = bool(data["value"]);
     if ( reqparam == "ssid") config.ssid = String((const char*)data["value"]);
     if ( reqparam == "WiFiKey") config.WiFiKey = String((const char*)data["value"]);
     if ( reqparam == "NTPServerName") config.NTPServerName = String((const char*)data["value"]);
     if ( reqparam == "Update_Time_Via_NTP_Every") config.Update_Time_Via_NTP_Every = data["value"];
     if ( reqparam == "TimeZone") config.TimeZone = data["value"];
-    if ( reqparam == "isDayLightSaving") config.isDayLightSaving = data["value"];
-    if ( reqparam == "Store") if (data["value"] == true) storage_write();
-    if ( reqparam == "Boot") if (data["value"] == true) BootESP();
-    if ( reqparam == "Reset") if (data["value"] == true) storage_reset();
-	if ( reqparam == "Temp_Corr") {
-		config.Temp_Corr = data["value"];
-		storage_write();
-		mqtt_publish(mqtt_pathtele(), "Temperatura", String(getNTCThermister()));
-	}
+    if ( reqparam == "isDayLightSaving") config.isDayLightSaving = bool(data["value"]);
+    if ( reqparam == "Store") if (bool(data["value"]) == true) storage_write();
+    if ( reqparam == "Boot") if (bool(data["value"]) == true) BootESP();
+    if ( reqparam == "Reset") if (bool(data["value"]) == true) storage_reset();
+    if ( reqparam == "Temp_Corr") {
+		    config.Temp_Corr = data["value"];
+		    storage_write();
+		    mqtt_publish(mqtt_pathtele(), "Temperatura", String(getNTCThermister()));
+	  }
+    mqtt_custom(reqparam, reqvalue, data);
     storage_print();
-    Extend_time=60;
 }
 
 
@@ -126,26 +154,6 @@ void mqtt_callback() {
     MQTTclient.setCallback(on_message);
 }
 
-
-int mqtt_connect() {
-    telnet_print("Connecting to MQTT Broker ...");
-    MQTTclient.setServer(config.MQTT_Server.c_str(), config.MQTT_Port);
-    // Attempt to connect (clientId, mqtt username, mqtt password)
-    if ( MQTTclient.connect(ChipID.c_str(), config.MQTT_User.c_str(), config.MQTT_Password.c_str())) {
-        telnet_println( "[DONE]" );
-        mqtt_subscribe(mqtt_pathconf(), "+");
-    }
-    else {
-        telnet_print( "MQTT ERROR! ==> " );
-        telnet_println( String(MQTTclient.state()) );
-        }
-    return MQTTclient.state();
-}
-
-void mqtt_disconnect() {
-    MQTTclient.disconnect();
-    telnet_print("Disconnected from MQTT Broker.");
-}
 
 // MQTT commands to run on setup function.
 int mqtt_setup() {

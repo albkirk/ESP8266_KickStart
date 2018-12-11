@@ -1,5 +1,9 @@
 #include <DHT.h>
 
+//System Parameters
+#define ChipID HEXtoUpperString(ESP.getChipId(), 6)
+#define ESP_SSID String("ESP-" + ChipID)                // SSID used as Acces Point
+int Number_of_measures = 10;                            // Number of value samples (measurements) to calculate average
 
 // Battery & ESP Voltage
 #define Diode_Corr float(0.4)             // Battery Voltage corrective Factor due to diode voltage drop
@@ -24,51 +28,53 @@ DHT dht_val(DHTPIN, DHTTYPE);
 #define Rs 47000                         // 47KOhm Voltage Dividor Resistor
 
 // Timers for millis used on Sleeping and LED flash
+unsigned long ONTime_Offset=0;
 unsigned long Extend_time=0;
 unsigned long now_millis=0;
 unsigned long Pace_millis=3000;
 unsigned long LED_millis=300;             // 10 slots available (3000 / 300)
 unsigned long BUZZER_millis=500;          // 6 Buzz beeps maximum  (3000 / 500)
 
-// Initialize internal ADC .
-ADC_MODE(ADC_VCC);                        // Comment it if you will use the ADC
-
 // Functions //
-float getInternalVoltage() {
-      // 10 times averaged ADC value read
-	  voltage = 0;
-      for(int i = 0; i < 10; i++) {
-          voltage += ESP.getVcc();
-          delay(10);
-      }
-	  voltage = voltage / 10;
-	  
-      voltage = voltage / 1000.0 + Diode_Corr;
-      return ((voltage - Batt_Min) / (Batt_Max - Batt_Min)) * 100.0;
+String HEXtoUpperString(uint32_t hexval, uint hexlen) {
+    String strgval = String(hexval, HEX);
+    String PADZero;
+    for (uint i = 0; i < (hexlen - strgval.length()) ; i++) PADZero +="0";
+    strgval = PADZero + strgval;
+    char buffer[hexlen+1];
+    strcpy(buffer, strgval.c_str());
+    for (uint i = 0; i < strgval.length() ; i++) {
+        if (char(buffer[i]) >= 97 ) buffer[i] = (char)(char(buffer[i] - 32));
+    }
+    return String(buffer);
 }
+/*
+// Initialize internal ADC .
+ifdef Internal_ADC   ADC_MODE(ADC_VCC)                      // Loaded if you declare that you will NOT use the ADC
+#endif
+*/
 
 float getVoltage() {
-
-  do {
-      delay(100);
-      voltage = (analogRead(A0) / 1000.0) * Vcc + Diode_Corr;
-      // Serial.print("VDD value= "); Serial.println(String(vdd));
-  } while (voltage < 2);               // the ESP do not run with a supply voltage lower than 2v!! So, if it is measuring it, it's not true!
-  return ((voltage - Batt_Min) / (Batt_Max - Batt_Min)) * 100.0;
+    voltage = 0;
+    for(int i = 0; i < Number_of_measures; i++) {
+        if (Internal_ADC) {voltage += ESP.getVcc();}
+        else {voltage += analogRead(A0) * Vcc;} // only later, the (final) measurement will be divided by 1000
+        delay(10);
+    };
+	  voltage = voltage / Number_of_measures;
+    voltage = voltage / 1000.0 + Diode_Corr;
+    return ((voltage - Batt_Min) / (Batt_Max - Batt_Min)) * 100.0;
 }
 
 long getRSSI() {
     // Read WiFi RSSI Strength signal
+    long r = 0;
 
-  long r = 0;
-  int n = 0;
-
-  while (n < 10) {
-    r += WiFi.RSSI();
-    n ++;
+    for(int i = 0; i < Number_of_measures; i++) {
+        r += WiFi.RSSI();
     }
-  r = r /10;
-  return r;
+    r = r /Number_of_measures;
+    return r;
 }
 
 
@@ -76,18 +82,18 @@ double getNTCThermister() {
 
   // 10 times averaged ADC value read
   int val = 0;
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < Number_of_measures; i++) {
       val += analogRead(A0);
       delay(10);
-      }
-  val = val / 10;
+  }
+  val = val / Number_of_measures;
 
   double V_NTC = (double)val / 1024;
   double R_NTC = (Rs * V_NTC) / (Vcc - V_NTC);
   R_NTC = log(R_NTC);
   double Temp = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * R_NTC * R_NTC ))* R_NTC );
   Temp = Temp - 273.15 + config.Temp_Corr;
-    return Temp;
+  return Temp;
 }
 
 

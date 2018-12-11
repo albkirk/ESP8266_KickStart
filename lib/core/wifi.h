@@ -220,7 +220,8 @@ void wifi_connect() {
           //IPAddress Subnet(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3]);   // required for fast WiFi registration
           //IPAddress DNS(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);      // required for fast WiFi registration
           //WiFi.config(StaticIP, Gateway, Subnet, DNS);                                                    // required for fast WiFi registration
-          delay(1000);                                                                           // required to comment for fast WiFi registration
+          //delay(1000);                                                                           // required to comment for fast WiFi registration
+          WiFi.hostname(config.Location + String("-") + config.DeviceName);
           WiFi.begin(config.ssid.c_str(), config.WiFiKey.c_str());
           WIFI_state = WiFi.waitForConnectResult();
           if ( WIFI_state == WL_CONNECTED ) {
@@ -229,8 +230,13 @@ void wifi_connect() {
       }
       else {
           // Initialize Wifi in AP mode
-          Serial.println("WiFi STATUS: " + String(WiFi.status()));
-          WiFi.mode(WIFI_AP);
+          WiFi.mode(WIFI_AP_STA);
+          WiFi.begin(config.ssid.c_str(), config.WiFiKey.c_str());
+          WIFI_state = WiFi.waitForConnectResult();
+          if ( WIFI_state == WL_CONNECTED ) {
+              Serial.print("Connected to WiFi network! " + config.ssid + " IP: "); Serial.println(WiFi.localIP());
+          }
+          //WiFi.mode(WIFI_AP);           // comment the 6 lines above if you need AP only
           WiFi.softAP(ESP_SSID.c_str());
           //WiFi.softAP(config.ssid.c_str());
           Serial.print("WiFi in AP mode, with IP: "); Serial.println(WiFi.softAPIP());

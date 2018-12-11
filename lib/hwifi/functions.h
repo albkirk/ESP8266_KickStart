@@ -9,6 +9,7 @@ beaconinfo aps_known[MAX_APS_TRACKED];                    // Array to save MACs 
 clientinfo clients_known[MAX_CLIENTS_TRACKED];            // Array to save MACs of known CLIENTs
 probeinfo probes_known[MAX_PROBES_TRACKED];               // Array to save MACs of known PROBEs
 
+
 //parse out details of client frame
 struct clientinfo parse_data(uint8_t *frame, uint16_t framelen, signed rssi, unsigned channel)
 {
@@ -448,6 +449,7 @@ void promisc_cb(uint8_t *buf, uint16_t len)
 
   if (len == 12) {
     struct RxControl *sniffer = (struct RxControl*) buf;
+    Serial.print("Len == 12 and Sniffer RSSI is:  " + sniffer->rssi);   // NUNO Dummy line to avoid compiling errors!?!
   } else if (len == 128) {
     uint8_t frame_control_pkt = buf[12]; // just after the RxControl Structure
     uint8_t frame_type = (frame_control_pkt & 0x0C) >> 2;
