@@ -8,10 +8,10 @@
 // HARWARE & SOFTWARE Version
 #define BRANDName "AlBros_Team"                         // Hardware brand name
 #define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "09.08"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define SWVer "10.01"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
 
 // GPIO to Function Assignment
-ADC_MODE(ADC_VCC);                                   // TO COMMENT IF  you will use the ADC
+ADC_MODE(ADC_VCC);                                    // TO COMMENT IF  you will use the ADC
 #define Internal_ADC true                               // will the ADC be used only to measure the interval voltage?
 #define LED_esp 2                                       // ESP Led is connected to GPIO 2
 #define DHTPIN -1                                       // GPIO Connected to DHT22 Data PIN. -1 means NO DHT used!
