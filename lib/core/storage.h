@@ -64,48 +64,55 @@ String  ReadStringFromEEPROM(int beginaddress, int SizeofString = 1024) {
   return retString;
 }
 
+// Adding function with project's customized STORAGE actions
+#include <custostore.h>
 
 //
 // MAIN Functions
 //
 
 void JSON_TO_STRUCT() {
-    config.DeviceName                = (String) root.get<const char*>("DeviceName")    ;
-    config.Location                  = (String) root.get<const char*>("Location")      ;
-    config.ClientID                  = (String) root.get<const char*>("ClientID")      ;
-    config.ONTime                    = root["ONTime"]                                  ;
-    config.SLEEPTime                 = root["SLEEPTime"]                               ;
-    config.DEEPSLEEP                 = root["DEEPSLEEP"]                               ;
-    config.LED                       = root["LED"]                                     ;
-    config.TELNET                    = root["TELNET"]                                  ;
-    config.OTA                       = root["OTA"]                                     ;
-    config.WEB                       = root["WEB"]                                     ;
-    config.Remote_Allow              = root["Remote_Allow"]                            ;
-    config.STAMode                   = root["STAMode"]                                 ;
-    config.ssid                      = (String) root.get<const char*>("ssid")          ;
-    config.WiFiKey                   = (String) root.get<const char*>("WiFiKey")       ;
-    config.dhcp                      = root["dhcp"]                                    ;
-    config.IP[0]                     = root["IP0"]                                     ;
-    config.IP[1]                     = root["IP1"]                                     ;
-    config.IP[2]                     = root["IP2"]                                     ;
-    config.IP[3]                     = root["IP3"]                                     ;
-    config.Netmask[0]                = root["Mask0"]                                   ;
-    config.Netmask[1]                = root["Mask1"]                                   ;
-    config.Netmask[2]                = root["Mask2"]                                   ;
-    config.Netmask[3]                = root["Mask3"]                                   ;
-    config.Gateway[0]                = root["GW0"]                                     ;
-    config.Gateway[1]                = root["GW1"]                                     ;
-    config.Gateway[2]                = root["GW2"]                                     ;
-    config.Gateway[3]                = root["GW3"]                                     ;
-    config.NTPServerName             = (String) root.get<const char*>("NTPServerName") ;
-    config.TimeZone                  = root["TimeZone"]                                ;
-    config.Update_Time_Via_NTP_Every = root["Update_Time_Via_NTP_Every"]               ;
-    config.isDayLightSaving          = root["isDayLightSaving"]                        ;
-    config.MQTT_Server               = (String) root.get<const char*>("MQTT_Server")   ;
-    config.MQTT_Port                 = root["MQTT_Port"]                               ;
-    config.MQTT_User                 = (String) root.get<const char*>("MQTT_User")     ;
-    config.MQTT_Password             = (String) root.get<const char*>("MQTT_Password") ;
-	config.Temp_Corr                 = root["Temp_Corr"]                               ;
+    config.DeviceName                = (String) root.get<const char*>("DeviceName")      ;
+    config.Location                  = (String) root.get<const char*>("Location")        ;
+    config.ClientID                  = (String) root.get<const char*>("ClientID")        ;
+    config.ONTime                    = root["ONTime"]                                    ;
+    config.SLEEPTime                 = root["SLEEPTime"]                                 ;
+    config.DEEPSLEEP                 = root["DEEPSLEEP"]                                 ;
+    config.LED                       = root["LED"]                                       ;
+    config.TELNET                    = root["TELNET"]                                    ;
+    config.OTA                       = root["OTA"]                                       ;
+    config.WEB                       = root["WEB"]                                       ;
+    config.Remote_Allow              = root["Remote_Allow"]                              ;
+    config.STAMode                   = root["STAMode"]                                   ;
+    config.ssid                      = (String) root.get<const char*>("ssid")            ;
+    config.WiFiKey                   = (String) root.get<const char*>("WiFiKey")         ;
+    config.dhcp                      = root["dhcp"]                                      ;
+    config.IP[0]                     = root["IP0"]                                       ;
+    config.IP[1]                     = root["IP1"]                                       ;
+    config.IP[2]                     = root["IP2"]                                       ;
+    config.IP[3]                     = root["IP3"]                                       ;
+    config.Netmask[0]                = root["Mask0"]                                     ;
+    config.Netmask[1]                = root["Mask1"]                                     ;
+    config.Netmask[2]                = root["Mask2"]                                     ;
+    config.Netmask[3]                = root["Mask3"]                                     ;
+    config.Gateway[0]                = root["GW0"]                                       ;
+    config.Gateway[1]                = root["GW1"]                                       ;
+    config.Gateway[2]                = root["GW2"]                                       ;
+    config.Gateway[3]                = root["GW3"]                                       ;
+    config.NTPServerName             = (String) root.get<const char*>("NTPServerName")   ;
+    config.TimeZone                  = root["TimeZone"]                                  ;
+    config.Update_Time_Via_NTP_Every = root["Update_Time_Via_NTP_Every"]                 ;
+    config.isDayLightSaving          = root["isDayLightSaving"]                          ;
+    config.MQTT_Server               = (String) root.get<const char*>("MQTT_Server")     ;
+    config.MQTT_Port                 = root["MQTT_Port"]                                 ;
+    config.MQTT_User                 = (String) root.get<const char*>("MQTT_User")       ;
+    config.MQTT_Password             = (String) root.get<const char*>("MQTT_Password")   ;
+    config.UPDATE_Server             = (String) root.get<const char*>("UPDATE_Server")   ;
+    config.UPDATE_Port               = root["UPDATE_Port"]                               ;
+    config.UPDATE_User               = (String) root.get<const char*>("UPDATE_User")     ;
+    config.UPDATE_Password           = (String) root.get<const char*>("UPDATE_Password") ;
+    config.Temp_Corr                 = root["Temp_Corr"]                                 ;
+    custo_JSON_TO_STRUCT();
 }
 
 void STRUCT_TO_JSON() {
@@ -144,14 +151,19 @@ void STRUCT_TO_JSON() {
     root["MQTT_Port"]                 = config.MQTT_Port                  ;
     root["MQTT_User"]                 = config.MQTT_User                  ;
     root["MQTT_Password"]             = config.MQTT_Password              ;
+    root["UPDATE_Server"]             = config.UPDATE_Server              ;
+    root["UPDATE_Port"]               = config.UPDATE_Port                ;
+    root["UPDATE_User"]               = config.UPDATE_User                ;
+    root["UPDATE_Password"]           = config.UPDATE_Password            ;
     root["Temp_Corr"]                 = config.Temp_Corr                  ;
+    custo_STRUCT_TO_JSON();
 }
 
 void storage_print() {
 
   Serial.println("Printing Config");
   Serial.printf("Device Name: %s and Location: %s\n", config.DeviceName.c_str(), config.Location.c_str());
-  Serial.printf("ON time: %d  SLEEP Time: %d  DEEPSLEEP enabled: %d\n", config.ONTime, config.SLEEPTime, config.DEEPSLEEP);
+  Serial.printf("ON time[sec]: %d  SLEEP Time[min]: %d  DEEPSLEEP enabled: %d\n", config.ONTime, config.SLEEPTime, config.DEEPSLEEP);
   Serial.printf("LED enabled: %d - TELNET enabled: %d - OTA enabled: %d - WEB enabled: %d\n", config.LED, config.TELNET, config.OTA, config.WEB);
   Serial.printf("WiFi STA Mode: %d\n", config.STAMode);
   Serial.printf("WiFi SSID: %s\n", config.ssid.c_str());
@@ -242,6 +254,7 @@ void storage_setup() {
     bool CFG_saved = false;
     EEPROM.begin(EEPROMZize);     // define an EEPROM space of 2048 Bytes to store data
     //storage_reset();            // Hack to reset storage during boot
+    config_defaults();
     CFG_saved = storage_read();   //When a configuration exists, it uses stored values
     if (!CFG_saved) {             // If NOT, it Set DEFAULT VALUES to "config" struct
         config_defaults();
