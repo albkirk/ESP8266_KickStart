@@ -8,10 +8,15 @@
 // HARWARE & SOFTWARE Version
 #define BRANDName "AlBros_Team"                         // Hardware brand name
 #define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "10.01"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define SWVer "10.02"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+
+// Battery & ESP Voltage
+#define BattPowered true                                // Is the device battery powered?
+#define LDO_Corr float(0.4)                             // Battery Voltage [volt] corrective Factor due to LDO/Diode voltage drop
+#define Batt_L_Thrs 40                                  // Battery level threshold [0%-100%] (before slepping forever).
 
 // GPIO to Function Assignment
-ADC_MODE(ADC_VCC);                                    // TO COMMENT IF  you will use the ADC
+ADC_MODE(ADC_VCC);                                      // TO COMMENT IF  you will use the ADC
 #define Internal_ADC true                               // will the ADC be used only to measure the interval voltage?
 #define LED_esp 2                                       // ESP Led is connected to GPIO 2
 #define DHTPIN -1                                       // GPIO Connected to DHT22 Data PIN. -1 means NO DHT used!
@@ -68,11 +73,9 @@ void config_defaults() {
     config.OTA = true;                                  // 0 - Disabled, 1 - Enabled
     config.WEB = false;                                 // 0 - Disabled, 1 - Enabled
     config.Remote_Allow = true;                         // 0 - Not Allow, 1 - Allow remote operation
-    config.STAMode = true;                              // 0 - AP Mode, 1 - Station Mode
-//    config.ssid = ESP_SSID;                             // SSID of access point
-//    config.WiFiKey = "";                                // Password of access point
-    config.ssid = String("ThomsonCasaN");               // Testing SSID
-    config.WiFiKey = String("12345678");                // Testing Password
+    config.STAMode = true;                              // 0 - AP or AP+STA Mode, 1 - Station only Mode
+    config.ssid = String("ThomsonCasaN");               // Wireless LAN SSID (STA mode)
+    config.WiFiKey = String("12345678");                // Wireless LAN Key (STA mode)
     config.dhcp = true;
     config.IP[0] = 192; config.IP[1] = 168; config.IP[2] = 1; config.IP[3] = 10;
     config.Netmask[0] = 255; config.Netmask[1] = 255; config.Netmask[2] = 255; config.Netmask[3] = 0;
@@ -128,6 +131,12 @@ void setup() {
   Serial.println(ESP.getResetReason());
 
 
+  // Check Battery Level
+      Batt_Level = getVoltage();
+
+  // Start DHT device
+      if (DHTPIN>=0) dht_val.begin();
+
   // Start Storage service and read stored configuration
       storage_setup();
 
@@ -148,40 +157,39 @@ void setup() {
 
   // Start MQTT service
       int mqtt_status = mqtt_setup();
+      if (mqtt_status == MQTT_CONNECTED) {
+          if (ESP.getResetReason() != "Deep-Sleep Wake") {
+              mqtt_publish(mqtt_pathtele(), "Boot", ESP.getResetReason());
+              mqtt_publish(mqtt_pathtele(), "ChipID", ChipID);
+              mqtt_publish(mqtt_pathtele(), "Brand", BRANDName);
+              mqtt_publish(mqtt_pathtele(), "Model", MODELName);
+              mqtt_publish(mqtt_pathtele(), "SWVer", SWVer);
+          }
+          if (BattPowered) {
+              mqtt_publish(mqtt_pathtele(), "BatLevel", String(Batt_Level));
+              if (Batt_Level > Batt_L_Thrs) mqtt_publish(mqtt_pathtele(), "Status", "Battery");
+              else mqtt_publish(mqtt_pathtele(), "Status", "LOW Battery");
+          }
+          else mqtt_publish(mqtt_pathtele(), "Status", "Mains");
+          mqtt_publish(mqtt_pathtele(), "RSSI", String(getRSSI()));
+          mqtt_publish(mqtt_pathtele(), "IP", WiFi.localIP().toString());
+      }
 
-  // Start DHT device
-      if (DHTPIN>=0) dht_val.begin();
+  // LOW Battery handling
+      if (Batt_Level < Batt_L_Thrs) {
+        mqtt_disconnect();
+        telnet_println("Going to sleep forever. Please, recharge the battery ! ! ! ");
+        delay(100);
+        ESP.deepSleep(0);                   // Sleep forever
+      }
+
 
   // **** Normal SETUP Sketch code here...
-  if (mqtt_status == MQTT_CONNECTED) {
-      if (ESP.getResetReason() != "Deep-Sleep Wake") {
-          mqtt_publish(mqtt_pathtele(), "Boot", ESP.getResetReason());
-          mqtt_publish(mqtt_pathtele(), "ChipID", ChipID);
-          mqtt_publish(mqtt_pathtele(), "Brand", BRANDName);
-          mqtt_publish(mqtt_pathtele(), "Model", MODELName);
-          mqtt_publish(mqtt_pathtele(), "SWVer", SWVer);
-      }
-      mqtt_publish(mqtt_pathtele(), "Status", "Mains");
-      //mqtt_publish(mqtt_pathtele(), "BatLevel", String(getVoltage()));
-      mqtt_publish(mqtt_pathtele(), "RSSI", String(getRSSI()));
-      mqtt_publish(mqtt_pathtele(), "IP", WiFi.localIP().toString());
-  }
 
-//  // Check Battery Level
-//      Batt_Level = getVoltage();
-//      mqtt_publish(mqtt_pathtele(), "BatLevel", String(Batt_Level));
-//      if (Batt_Level < Batt_L_Thrs) {
-//        mqtt_publish(mqtt_pathtele(), "Status", "LOW Battery");
-//        mqtt_disconnect();
-//        telnet_println("Going to sleep forever.  Please, recharge the battery ! ! ! ");
-//        delay(500);
-//        ESP.deepSleep(0);   // Sleep forever
-//      }
-//      else mqtt_publish(mqtt_pathtele(), "Status", "Battery");
 
   // Last bit of code before leave setup
-  ONTime_Offset = millis()/1000 + 0.1;    //  100ms after finishing the SETUP funciton it starts the "ONTime" countdown.
-                                          //  it should be good enough to receive the MQTT "ExtendONTime" msg
+      ONTime_Offset = millis()/1000 + 0.1;  //  100ms after finishing the SETUP function it starts the "ONTime" countdown.
+                                            //  it should be good enough to receive the MQTT "ExtendONTime" msg
 } // end of setup()
 
 
@@ -210,15 +218,16 @@ void loop() {
   // MQTT handling
       mqtt_loop();
 
-
-  // **** Normal LOOP Skecth code here ...
+  // DeepSleep handling
   if (config.DEEPSLEEP && !config.TELNET && !config.OTA && !config.WEB && (millis()/1000) > (ulong(config.ONTime) + ONTime_Offset + Extend_time)) {
     mqtt_publish(mqtt_pathtele(), "Status", "DeepSleep");
     mqtt_disconnect();
     telnet_println("Going to sleep until next event... zzZz :) ");
-    delay(1500);
+    delay(100);
     ESP.deepSleep(config.SLEEPTime * 60 * 1000000);   // time in minutes converted to microseconds
   }
+
+  // **** Normal LOOP Skecth code here ...
 
 
 

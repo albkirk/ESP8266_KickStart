@@ -22,9 +22,9 @@ WiFiClient wifiClient;
 
 // WiFi and Sniffer VARIABLEs
 int WIFI_state = WL_DISCONNECTED;
-unsigned int WIFI_Retry = 120;                    // Timer to retry the WiFi connection
-unsigned long WIFI_LastTime = 0;                  // Last WiFi connection attempt time stamp
-int WIFI_errors = 0;                              // WiFi errors Counter
+unsigned int WIFI_Retry = 120;                  // Timer to retry the WiFi connection
+unsigned long WIFI_LastTime = 0;                // Last WiFi connection attempt time stamp
+int WIFI_errors = 0;                            // WiFi errors Counter
 
 unsigned long sendEntry;
 char jsonString[JBUFFER];
@@ -150,7 +150,7 @@ String wifi_listAPs() {
         }
     }
 
-    //root.prettyPrintTo(Serial);     // dump pretty format to serial interface
+    //root.prettyPrintTo(Serial);               // dump pretty format to serial interface
     root.printTo(jsonString);
     // Serial.print("jsonString ready to Publish: "); Serial.println((jsonString));
     return jsonString;
@@ -173,7 +173,7 @@ String wifi_listSTAs() {
         }
     }
 
-    //root.prettyPrintTo(Serial);                 // dump pretty format to serial interface
+    //root.prettyPrintTo(Serial);               // dump pretty format to serial interface
     root.printTo(jsonString);
     //Serial.print("jsonString ready to Publish: "); Serial.println((jsonString));
     return jsonString;
@@ -199,7 +199,7 @@ String wifi_listProbes() {
         }
     }
 
-    //root.prettyPrintTo(Serial);     // dump pretty format to serial interface
+    //root.prettyPrintTo(Serial);               // dump pretty format to serial interface
     root.printTo(jsonString);
     Serial.print("jsonString ready to Publish: "); Serial.println((jsonString));
     return jsonString;
@@ -214,13 +214,16 @@ void wifi_connect() {
       if (config.STAMode) {
           // Setup ESP8266 in Station mode
           WiFi.mode(WIFI_STA);
-          // the IP address for the shield:
-          //IPAddress StaticIP(config.IP[0], config.IP[1], config.IP[2], config.IP[3]);                     // required for fast WiFi registration
-          //IPAddress Gateway(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);  // required for fast WiFi registration
-          //IPAddress Subnet(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3]);   // required for fast WiFi registration
-          //IPAddress DNS(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);      // required for fast WiFi registration
-          //WiFi.config(StaticIP, Gateway, Subnet, DNS);                                                    // required for fast WiFi registration
-          //delay(1000);                                                                           // required to comment for fast WiFi registration
+          // the IP address for the shield
+          if (!config.dhcp) {
+            // Static IP (No dhcp) may be handy for fast WiFi registration
+              IPAddress StaticIP(config.IP[0], config.IP[1], config.IP[2], config.IP[3]);
+              IPAddress Gateway(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);
+              IPAddress Subnet(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3]);
+              IPAddress DNS(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);
+              WiFi.config(StaticIP, Gateway, Subnet, DNS);
+          }
+          //delay(1000);                        // required to comment for fast WiFi registration
           WiFi.hostname(config.Location + String("-") + config.DeviceName);
           WiFi.begin(config.ssid.c_str(), config.WiFiKey.c_str());
           WIFI_state = WiFi.waitForConnectResult();
@@ -229,14 +232,14 @@ void wifi_connect() {
           }
       }
       else {
-          // Initialize Wifi in AP mode
+          // Initialize Wifi in AP+STA mode
           WiFi.mode(WIFI_AP_STA);
           WiFi.begin(config.ssid.c_str(), config.WiFiKey.c_str());
           WIFI_state = WiFi.waitForConnectResult();
           if ( WIFI_state == WL_CONNECTED ) {
               Serial.print("Connected to WiFi network! " + config.ssid + " IP: "); Serial.println(WiFi.localIP());
           }
-          //WiFi.mode(WIFI_AP);           // comment the 6 lines above if you need AP only
+          //WiFi.mode(WIFI_AP);                 // comment the 6 lines above if you need AP only
           WiFi.softAP(ESP_SSID.c_str());
           //WiFi.softAP(config.ssid.c_str());
           Serial.print("WiFi in AP mode, with IP: "); Serial.println(WiFi.softAPIP());
@@ -246,7 +249,7 @@ void wifi_connect() {
 
 
 void wifi_setup() {
-    //WiFi.persistent(false);                                                                               // required for fast WiFi registration
+    //WiFi.persistent(false);                   // required for fast WiFi registration
     wifi_connect();
 }
 
@@ -264,16 +267,16 @@ void wifi_loop() {
 
 
 void wifi_sniffer() {
-    wifi_set_opmode(STATION_MODE);            // Promiscuous works only with station mode
+    wifi_set_opmode(STATION_MODE);              // Promiscuous works only with station mode
     wifi_set_channel(1);
     wifi_promiscuous_enable(false);
-    wifi_set_promiscuous_rx_cb(promisc_cb);   // Set up promiscuous callback
+    wifi_set_promiscuous_rx_cb(promisc_cb);     // Set up promiscuous callback
     wifi_promiscuous_enable(true);
     boolean NewDevice = false;
     for (uint channel = 1; channel <= 13; channel++) {    // ESP only supports 1 ~ 13
         wifi_set_channel(channel);
-        for (int n = 0; n < 200; n++) {   // 200 times delay(1) = 200 ms, which is 2 beacon's of 100ms
-            delay(1);  // critical processing timeslice for NONOS SDK!
+        for (int n = 0; n < 200; n++) {         // 200 times delay(1) = 200 ms, which is 2 beacon's of 100ms
+            delay(1);                           // critical processing timeslice for NONOS SDK!
             if (aps_known_count > aps_known_count_old) {
                 aps_known_count_old = aps_known_count;
                 NewDevice = true;

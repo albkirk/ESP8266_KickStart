@@ -3,13 +3,11 @@
 //System Parameters
 #define ChipID HEXtoUpperString(ESP.getChipId(), 6)
 #define ESP_SSID String("ESP-" + ChipID)                // SSID used as Acces Point
-int Number_of_measures = 10;                            // Number of value samples (measurements) to calculate average
+#define Number_of_measures 10                           // Number of value samples (measurements) to calculate average
 
 // Battery & ESP Voltage
-#define Diode_Corr float(0.4)             // Battery Voltage corrective Factor due to diode voltage drop
 #define Batt_Max float(4.2)               // Battery Highest voltage.  [v]
 #define Batt_Min float(3.0)               // Battery lowest voltage.   [v]
-#define Batt_L_Thrs 40                    // Battery threshold voltage [0%-100%] (before slepping forever).
 #define Vcc float(3.3)                    // Theoretical/Typical ESP voltage. [v]
 #define VADC_MAX float(1.0)               // Maximum ADC Voltage input
 float voltage = 0.0;                      // Input Voltage [v]
@@ -61,8 +59,8 @@ float getVoltage() {
         else {voltage += analogRead(A0) * Vcc;} // only later, the (final) measurement will be divided by 1000
         delay(10);
     };
-	  voltage = voltage / Number_of_measures;
-    voltage = voltage / 1000.0 + Diode_Corr;
+	voltage = voltage / Number_of_measures;
+    voltage = voltage / 1000.0 + LDO_Corr;
     return ((voltage - Batt_Min) / (Batt_Max - Batt_Min)) * 100.0;
 }
 
