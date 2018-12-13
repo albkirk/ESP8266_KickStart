@@ -53,19 +53,21 @@ ifdef Internal_ADC   ADC_MODE(ADC_VCC)                      // Loaded if you dec
 */
 
 float getVoltage() {
+    // return battery level in Percentage [0 - 100%]
     voltage = 0;
     for(int i = 0; i < Number_of_measures; i++) {
         if (Internal_ADC) {voltage += ESP.getVcc();}
         else {voltage += analogRead(A0) * Vcc;} // only later, the (final) measurement will be divided by 1000
         delay(10);
     };
-	voltage = voltage / Number_of_measures;
+    voltage = voltage / Number_of_measures;
     voltage = voltage / 1000.0 + LDO_Corr;
+    //telnet_println("Averaged and Corrected Voltage: " + String(voltage));
     return ((voltage - Batt_Min) / (Batt_Max - Batt_Min)) * 100.0;
 }
 
 long getRSSI() {
-    // Read WiFi RSSI Strength signal
+    // return WiFi RSSI Strength signal [dBm]
     long r = 0;
 
     for(int i = 0; i < Number_of_measures; i++) {
@@ -76,11 +78,10 @@ long getRSSI() {
 }
 
 
-double getNTCThermister() {
-
-  // 10 times averaged ADC value read
+float getNTCThermister() {
+  // Return temperature as Celsius
   int val = 0;
-  for(int i = 0; i < Number_of_measures; i++) {
+  for(int i = 0; i < Number_of_measures; i++) {   // ADC value is read N times
       val += analogRead(A0);
       delay(10);
   }
@@ -89,33 +90,37 @@ double getNTCThermister() {
   double V_NTC = (double)val / 1024;
   double R_NTC = (Rs * V_NTC) / (Vcc - V_NTC);
   R_NTC = log(R_NTC);
-  double Temp = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * R_NTC * R_NTC ))* R_NTC );
-  Temp = Temp - 273.15 + config.Temp_Corr;
+  double Tmp = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * R_NTC * R_NTC ))* R_NTC );
+  float Temp = (float)Tmp - 273.15 + config.Temp_Corr;
   return Temp;
 }
 
 
 float getTemperature() {
-    // Read temperature as Celsius (DHT22 range -40 to +125 degrees Celsius) or -100 if error
+    // Return temperature as Celsius (DHT22 range -40 to +125 degrees Celsius) or -100 if error
+  if (DHTPIN>=0) {
+      float t;
+      int n = 0;
 
-  float t;
-  int n = 0;
-
-  while (n < 10) {
-    t = dht_val.readTemperature() + config.Temp_Corr;
-    // Check if any reads failed and exit.
-    if (isnan(t)) {
-      Serial.println("Failed to read temperature from DHT sensor!");
-      delay(1000);
-      //t = NULL;
-      n ++;
-    }
-    else {
-      //Serial.print(t);
-      return t;
-    }
+      while (n < 10) {
+          t = dht_val.readTemperature() + config.Temp_Corr;
+          // Check if any reads failed and exit.
+          if (isnan(t)) {
+              Serial.println("Failed to read temperature from DHT sensor!");
+              delay(1000);
+              //t = NULL;
+              n ++;
+          }
+          else {
+              //Serial.print(t);
+              return t;
+          }
+    };
   }
-return -100;
+  else {
+    return getNTCThermister();
+  }
+  return -100;
 }
 
 

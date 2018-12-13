@@ -141,7 +141,7 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
     if ( reqparam == "Temp_Corr") {
 		    config.Temp_Corr = data["value"];
 		    storage_write();
-		    mqtt_publish(mqtt_pathtele(), "Temperatura", String(getNTCThermister()));
+		    mqtt_publish(mqtt_pathtele(), "Temperatura", String(getTemperature()));
 	  }
     mqtt_custom(reqparam, reqvalue, data);
     storage_print();
