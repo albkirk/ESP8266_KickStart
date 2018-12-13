@@ -8,11 +8,10 @@
 // /clientid/location/deviceName/configure/<topic>    --> typically, used when subscribing for actions
 
 // EXAMPLEs
-// /001001/room/Estore/telemetry/RSSI                 --> value in dBm
-// /001001/kitchen/AmbiSense/telemetry/BatLevel       --> 0 - 100
-// /001001/outside/MailBox/telemetry/Status           --> OK / LOWBat
-// /001001/kitchen/AmbSense/telemetry/DeepSleep       --> time in sec
-// /001001/outside/MailBox/telemetry/LED              --> True / False  to turn LED ON/OFF
+// /001001/outside/MailBox/telemetry/Status           --> Device status OK / LOWBat
+// /001001/room/Estore/telemetry/RSSI                 --> WiFi signal strength value in dBm
+// /001001/kitchen/AmbiSense/telemetry/BatLevel       --> Battery Level 0 - 100 %
+// /001001/kitchen/AmbSense/configure/DeepSleep       --> Set DeepSleep feature to Enabled - Disabled
 // /001001/outside/MailBox/configure/LED              --> Set True / False to turn LED ON/OFF
 
 

@@ -1,7 +1,13 @@
 /*
- * * ESP8266 template with config web page
- * based on BVB_WebConfig_OTA_V7 from Andreas Spiess https://github.com/SensorsIot/Internet-of-Things-with-ESP8266
- * to do: create button on web page to setup AP or Client WiFi Mode
+ * * Main File to trigger all C code using "arduino" style.
+ * * It contains all necessary function calls on setup and loop functions
+ * * HOW TO USE THIS TEMPLATE:
+ * * -- Adjust the parameter below to your project.
+ * *    Parameters on struct "config" will be store on memory.
+ * *    Don't forget to customize the Mem read and write actions on "lib/project/custostore.h"
+ * * -- Use the "// **** Normal code ..." zones to add you own definition, functions, setup and loop code
+ * * -- You can also add you own MQTT actions on "lib/project/customqtt.h"
+ * * -- Suggest to use "lib/project/" to add your own h files
  */
 #include <ESP8266WiFi.h>
 
@@ -26,62 +32,63 @@ ADC_MODE(ADC_VCC);                                      // TO COMMENT IF  you wi
 
 
 struct strConfig {
-  String DeviceName;                                    //
-  String Location;                 	                    //
-  String ClientID;                                      //
-  byte ONTime;                                          //
-  byte SLEEPTime;                                       //
-  boolean DEEPSLEEP;                                    //
-  boolean LED;                                          //
-  boolean TELNET;                                       //
-  boolean OTA;                                          //
-  boolean WEB;                                          //
-  boolean Remote_Allow;                                 //
-  boolean STAMode;                                      //
-  String ssid;                                          //
-  String WiFiKey;                                       //
-  boolean dhcp;                                         //
-  byte IP[4];                                           //
-  byte Netmask[4];                                      //
-  byte Gateway[4];                                      //
-  String NTPServerName;                                 //
-  long TimeZone;                                        //
-  long Update_Time_Via_NTP_Every;                       //
-  boolean isDayLightSaving;                             //
-  String MQTT_Server;                                   //
-  long MQTT_Port;                                       //
-  String MQTT_User;                                     //
-  String MQTT_Password;                                 //
-  String UPDATE_Server;                                 //
-  long UPDATE_Port;                                     //
-  String UPDATE_User;                                   //
-  String UPDATE_Password;                               //
-  long Temp_Corr;                                       //
+  String DeviceName;
+  String Location;
+  String ClientID;
+  byte ONTime;
+  byte SLEEPTime;
+  boolean DEEPSLEEP;
+  boolean LED;
+  boolean TELNET;
+  boolean OTA;
+  boolean WEB;
+  boolean Remote_Allow;
+  boolean STAMode;
+  String ssid;
+  String WiFiKey;
+  boolean dhcp;
+  byte IP[4];
+  byte Netmask[4];
+  byte Gateway[4];
+  String NTPServerName;
+  long TimeZone;
+  long Update_Time_Via_NTP_Every;
+  boolean isDayLightSaving;
+  String MQTT_Server;
+  long MQTT_Port;
+  String MQTT_User;
+  String MQTT_Password;
+  String UPDATE_Server;
+  long UPDATE_Port;
+  String UPDATE_User;
+  String UPDATE_Password;
+  long Temp_Corr;
 } config;
+
 
 void config_defaults() {
     Serial.println("Setting config Default values");
 
-    config.DeviceName = String("ESP_Generic");          // Device Name
-    config.Location = String("MainRoom");               // Device Location
-    config.ClientID = String("001001");                 // Client ID (used on MQTT)
-    config.ONTime = 60;                                 // 0-255 seconds (Byte range)
-    config.SLEEPTime = 0;                               // 0-255 minutes (Byte range)
-    config.DEEPSLEEP = false;                           // 0 - Disabled, 1 - Enabled
-    config.LED = true;                                  // 0 - OFF, 1 - ON
-    config.TELNET = false;                              // 0 - Disabled, 1 - Enabled
-    config.OTA = true;                                  // 0 - Disabled, 1 - Enabled
-    config.WEB = false;                                 // 0 - Disabled, 1 - Enabled
-    config.Remote_Allow = true;                         // 0 - Not Allow, 1 - Allow remote operation
-    config.STAMode = true;                              // 0 - AP or AP+STA Mode, 1 - Station only Mode
-    config.ssid = String("ThomsonCasaN");               // Wireless LAN SSID (STA mode)
-    config.WiFiKey = String("12345678");                // Wireless LAN Key (STA mode)
-    config.dhcp = true;
+    config.DeviceName = String("ESP_Generic");            // Device Name
+    config.Location = String("MainRoom");                 // Device Location
+    config.ClientID = String("001001");                   // Client ID (used on MQTT)
+    config.ONTime = 60;                                   // 0-255 seconds (Byte range)
+    config.SLEEPTime = 0;                                 // 0-255 minutes (Byte range)
+    config.DEEPSLEEP = false;                             // 0 - Disabled, 1 - Enabled
+    config.LED = true;                                    // 0 - OFF, 1 - ON
+    config.TELNET = false;                                // 0 - Disabled, 1 - Enabled
+    config.OTA = true;                                    // 0 - Disabled, 1 - Enabled
+    config.WEB = false;                                   // 0 - Disabled, 1 - Enabled
+    config.Remote_Allow = true;                           // 0 - Not Allow, 1 - Allow remote operation
+    config.STAMode = true;                                // 0 - AP or AP+STA Mode, 1 - Station only Mode
+    config.ssid = String("ThomsonCasaN");                 // Wireless LAN SSID (STA mode)
+    config.WiFiKey = String("12345678");                  // Wireless LAN Key (STA mode)
+    config.dhcp = true;                                   // 0 - Static IP, 1 - DHCP
     config.IP[0] = 192; config.IP[1] = 168; config.IP[2] = 1; config.IP[3] = 10;
     config.Netmask[0] = 255; config.Netmask[1] = 255; config.Netmask[2] = 255; config.Netmask[3] = 0;
     config.Gateway[0] = 192; config.Gateway[1] = 168; config.Gateway[2] = 1; config.Gateway[3] = 254;
-    config.NTPServerName = String("pt.pool.ntp.org");
-    config.Update_Time_Via_NTP_Every = 1200;              // Time in minutes
+    config.NTPServerName = String("pt.pool.ntp.org");     // NTP Server
+    config.Update_Time_Via_NTP_Every = 1200;              // Time in minutes to re-sync the clock
     config.TimeZone = 0;                                  // -12 to 13. See Page_NTPSettings.h why using -120 to 130 on the code.
     config.isDayLightSaving = 1;                          // 0 - Disabled, 1 - Enabled
     config.MQTT_Server = String("iothubna.hopto.org");    // MQTT Broker Server (URL or IP)
@@ -104,7 +111,6 @@ void config_defaults() {
 #include <web.h>
 #include <ota.h>
 #include <mqtt.h>
-
 
 
 // **** Normal code definition here ...
@@ -140,7 +146,7 @@ void setup() {
   // Start Storage service and read stored configuration
       storage_setup();
 
-  // Start WiFi service (Station or as Access Point)
+  // Start WiFi service (Station or/and as Access Point)
       wifi_setup();
 
   // Start TELNET service
@@ -157,6 +163,7 @@ void setup() {
 
   // Start MQTT service
       int mqtt_status = mqtt_setup();
+
       if (mqtt_status == MQTT_CONNECTED) {
           if (ESP.getResetReason() != "Deep-Sleep Wake") {
               mqtt_publish(mqtt_pathtele(), "Boot", ESP.getResetReason());
