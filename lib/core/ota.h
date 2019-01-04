@@ -60,7 +60,7 @@ bool actualUpdate(bool sketch=true){
         }
         digitalWrite(LED_esp,HIGH); // Switch OFF ESP LED to save energy
         telnet_println("\nEnd");
-        BootESP();
+        ESPBoot();
       });
     ArduinoOTA.onError([](ota_error_t error) {
         Serial.printf("Error[%u]: ", error);
@@ -69,12 +69,12 @@ bool actualUpdate(bool sketch=true){
         else if (error == OTA_CONNECT_ERROR) telnet_println("OTA Connect Failed");
         else if (error == OTA_RECEIVE_ERROR) telnet_println("OTA Receive Failed");
         else if (error == OTA_END_ERROR) telnet_println("OTA End Failed");
-        BootESP();
+        ESPBoot();
       });
 
     ArduinoOTA.begin();
     telnet_println("Ready for OTA");
-    if(actualUpdate(true)) BootESP();
+    if(actualUpdate(true)) ESPBoot();
   }
 
 

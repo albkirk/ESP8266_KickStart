@@ -12,25 +12,24 @@ extern "C" {
 
 
 // Sniffer CONSTANTs
-#define PURGETIME 600000
-#define MINRSSI -70
+#define PURGETIME 600000                        // Timeout to purge the list [miliseconds]
+#define MINRSSI -70                             // Min RSSI to add the device in the list
 #define MAXDEVICES 100
 #define JBUFFER 15 + (MAXDEVICES * 40)
-#define SENDTIME 30000
-WiFiClient wifiClient;
 
 
 // WiFi and Sniffer VARIABLEs
 int WIFI_state = WL_DISCONNECTED;
+int Last_WIFI_state = WL_NO_SHIELD;
 unsigned int WIFI_Retry = 120;                  // Timer to retry the WiFi connection
 unsigned long WIFI_LastTime = 0;                // Last WiFi connection attempt time stamp
 int WIFI_errors = 0;                            // WiFi errors Counter
 
-unsigned long sendEntry;
 char jsonString[JBUFFER];
 StaticJsonBuffer<JBUFFER>  wifijsonBuffer;
 
-
+//WiFi initialization
+WiFiClient wifiClient;
 
 // Sniffer FUNCTIONS
 void purgeDevices() {
@@ -133,20 +132,24 @@ void wifi_showPRBs() {
 
 String wifi_listAPs() {
     String devices_ap, devices_ssid;
+    uint devices_rssi;
 
     // Purge and recreate json string
     wifijsonBuffer.clear();
     JsonObject& root = wifijsonBuffer.createObject();
     JsonArray& ap = root.createNestedArray("APs");
     JsonArray& ssid = root.createNestedArray("AP_SSIDs");
+    JsonArray& rssi = root.createNestedArray("AP_RSSIs");
 
     // add APs
     for (int u = 0; u < aps_known_count; u++) {
         if (aps_known[u].rssi > MINRSSI) {
             devices_ap = formatMac1(aps_known[u].bssid);
             devices_ssid = (char*)aps_known[u].ssid;
+            devices_rssi = aps_known[u].rssi;
             ap.add(devices_ap);
             ssid.add(devices_ssid);
+            rssi.add(devices_rssi);
         }
     }
 
@@ -229,6 +232,7 @@ void wifi_connect() {
           WIFI_state = WiFi.waitForConnectResult();
           if ( WIFI_state == WL_CONNECTED ) {
               Serial.print("Connected to WiFi network! " + config.ssid + " IP: "); Serial.println(WiFi.localIP());
+              rtcData.LastWiFiChannel = uint(wifi_get_channel);
           }
       }
       else {
@@ -245,10 +249,12 @@ void wifi_connect() {
           Serial.print("WiFi in AP mode, with IP: "); Serial.println(WiFi.softAPIP());
       }
   }
+  else WIFI_state = WL_CONNECTED;
 }
 
 
 void wifi_setup() {
+    WiFi.mode(WIFI_OFF);
     //WiFi.persistent(false);                   // required for fast WiFi registration
     wifi_connect();
 }
@@ -257,24 +263,27 @@ void wifi_loop() {
     if ( WiFi.status() != WL_CONNECTED ) {
         if ( millis() - WIFI_LastTime > (WIFI_Retry * 1000)) {
             WIFI_errors ++;
-            Serial.print( "in loop function WiFI ERROR! #: " + String(WIFI_errors) + "  ==> "); Serial.println( WiFi.status() );
+            Serial.println( "in loop function WiFI ERROR! #: " + String(WIFI_errors) + "  ==> " + (wl_status_t)WiFi.status());
             WIFI_LastTime = millis();
             wifi_connect();
         }
+    }
+    else {
+        if (WIFI_state != WL_CONNECTED) WIFI_state = WL_CONNECTED;
     }
     yield();
 }
 
 
-void wifi_sniffer() {
+void wifi_sniffer(uint startchannel = rtcData.LastWiFiChannel, uint8 endchannel = (rtcData.LastWiFiChannel + 13)) {
     wifi_set_opmode(STATION_MODE);              // Promiscuous works only with station mode
-    wifi_set_channel(1);
     wifi_promiscuous_enable(false);
     wifi_set_promiscuous_rx_cb(promisc_cb);     // Set up promiscuous callback
     wifi_promiscuous_enable(true);
     boolean NewDevice = false;
-    for (uint channel = 1; channel <= 13; channel++) {    // ESP only supports 1 ~ 13
-        wifi_set_channel(channel);
+    for (uint channel = startchannel; channel <= endchannel; channel++) {    // ESP only supports 1 ~ 13
+        if (channel%13 == 0) wifi_set_channel(13);
+        else wifi_set_channel(channel%13);
         for (int n = 0; n < 200; n++) {         // 200 times delay(1) = 200 ms, which is 2 beacon's of 100ms
             delay(1);                           // critical processing timeslice for NONOS SDK!
             if (aps_known_count > aps_known_count_old) {

@@ -9,9 +9,9 @@
 -IC:\Users\nalbuque\Google Drive\GitHub\ESP8266_KickStart\lib\project
 -IC:\Users\nalbuque\.platformio\lib\ArduinoJson_ID64\src
 -IC:\Users\nalbuque\.platformio\lib\DHT sensor library_ID19
+-IC:\Users\nalbuque\.platformio\lib\ESP_EEPROM_ID2795\src
 -IC:\Users\nalbuque\.platformio\lib\PubSubClient_ID89\src
 -IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\ArduinoOTA
--IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\EEPROM
 -IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\ESP8266HTTPClient\src
 -IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\ESP8266WebServer\src
 -IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\ESP8266WiFi\src
@@ -24,6 +24,7 @@
 -IC:\Users\nalbuque\.platformio\lib\EspSoftwareSerial_ID168
 -IC:\Users\nalbuque\.platformio\lib\IRremoteESP8266_ID1089\src
 -IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\DNSServer\src
+-IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\EEPROM
 -IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\ESP8266AVRISP\src
 -IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\ESP8266HTTPUpdateServer\src
 -IC:\Users\nalbuque\.platformio\packages\framework-arduinoespressif8266\libraries\ESP8266LLMNR
