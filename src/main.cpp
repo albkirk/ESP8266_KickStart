@@ -14,12 +14,12 @@
 // HARWARE & SOFTWARE Version
 #define BRANDName "AlBros_Team"                         // Hardware brand name
 #define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "10.04"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define SWVer "10.05"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
 
 // Battery & ESP Voltage
 #define BattPowered true                                // Is the device battery powered?
-#define LDO_Corr float(0.4)                             // Battery Voltage [volt] corrective Factor due to LDO/Diode voltage drop
-#define Batt_L_Thrs 40                                  // Battery level threshold [0%-100%] (before slepping forever).
+#define LDO_Corr float(0.3)                             // Battery Voltage [volt] corrective Factor due to LDO/Diode voltage drop
+#define Batt_L_Thrs 5                                   // Battery level threshold [0%-100%] (before slepping forever).
 
 // GPIO to Function Assignment
 #define Using_ADC false                                 // will this device use the ADC? (if not it will measure the interval voltage)
@@ -28,10 +28,10 @@
 #define BUZZER -1                                       // (Active) Buzzer pin. Suggest to use pin 0.  -1 means NOT used!
 
 
-struct strConfig {
-  String DeviceName;
-  String Location;
-  String ClientID;
+struct __attribute__((__packed__)) strConfig {
+  char DeviceName[16];
+  char Location[16];
+  char ClientID[8];
   byte ONTime;
   byte SLEEPTime;
   boolean DEEPSLEEP;
@@ -41,24 +41,24 @@ struct strConfig {
   boolean WEB;
   boolean Remote_Allow;
   boolean STAMode;
-  String ssid;
-  String WiFiKey;
+  char ssid[32];
+  char WiFiKey[32];
   boolean dhcp;
   byte IP[4];
   byte Netmask[4];
   byte Gateway[4];
-  String NTPServerName;
+  char NTPServerName[128];
   long TimeZone;
-  long Update_Time_Via_NTP_Every;
+  unsigned long Update_Time_Via_NTP_Every;
   boolean isDayLightSaving;
-  String MQTT_Server;
+  char MQTT_Server[128];
   long MQTT_Port;
-  String MQTT_User;
-  String MQTT_Password;
-  String UPDATE_Server;
+  char MQTT_User[16];
+  char MQTT_Password[16];
+  char UPDATE_Server[128];
   long UPDATE_Port;
-  String UPDATE_User;
-  String UPDATE_Password;
+  char UPDATE_User[16];
+  char UPDATE_Password[16];
   long Temp_Corr;
 } config;
 
@@ -66,9 +66,9 @@ struct strConfig {
 void config_defaults() {
     Serial.println("Setting config Default values");
 
-    config.DeviceName = String("ESP_Generic");            // Device Name
-    config.Location = String("MainRoom");                 // Device Location
-    config.ClientID = String("001001");                   // Client ID (used on MQTT)
+    strcpy(config.DeviceName, "ESP_Generic");             // Device Name
+    strcpy(config.Location, "MainRoom");                  // Device Location
+    strcpy(config.ClientID, "001001");                    // Client ID (used on MQTT)
     config.ONTime = 60;                                   // 0-255 seconds (Byte range)
     config.SLEEPTime = 0;                                 // 0-255 minutes (Byte range)
     config.DEEPSLEEP = false;                             // 0 - Disabled, 1 - Enabled
@@ -78,40 +78,41 @@ void config_defaults() {
     config.WEB = false;                                   // 0 - Disabled, 1 - Enabled
     config.Remote_Allow = true;                           // 0 - Not Allow, 1 - Allow remote operation
     config.STAMode = true;                                // 0 - AP or AP+STA Mode, 1 - Station only Mode
-    config.ssid = String("ThomsonCasaN");                 // Wireless LAN SSID (STA mode)
-    config.WiFiKey = String("12345678");                  // Wireless LAN Key (STA mode)
+    strcpy(config.ssid, "ThomsonCasaN");                 // Wireless LAN SSID (STA mode)
+    strcpy(config.WiFiKey, "12345678");                  // Wireless LAN Key (STA mode)
     config.dhcp = true;                                   // 0 - Static IP, 1 - DHCP
     config.IP[0] = 192; config.IP[1] = 168; config.IP[2] = 1; config.IP[3] = 10;
     config.Netmask[0] = 255; config.Netmask[1] = 255; config.Netmask[2] = 255; config.Netmask[3] = 0;
     config.Gateway[0] = 192; config.Gateway[1] = 168; config.Gateway[2] = 1; config.Gateway[3] = 254;
-    config.NTPServerName = String("pt.pool.ntp.org");     // NTP Server
+    strcpy(config.NTPServerName, "pt.pool.ntp.org");         // NTP Server
     config.Update_Time_Via_NTP_Every = 1200;              // Time in minutes to re-sync the clock
     config.TimeZone = 0;                                  // -12 to 13. See Page_NTPSettings.h why using -120 to 130 on the code.
     config.isDayLightSaving = 1;                          // 0 - Disabled, 1 - Enabled
-    config.MQTT_Server = String("iothubna.hopto.org");    // MQTT Broker Server (URL or IP)
+    strcpy(config.MQTT_Server, "iothubna.hopto.org");    // MQTT Broker Server (URL or IP)
     config.MQTT_Port = 1883;                              // MQTT Broker TCP port
-    config.MQTT_User = String("admin");                   // MQTT Broker username
-    config.MQTT_Password = String("admin");               // MQTT Broker password
-    config.UPDATE_Server = String("iothubna.hopto.org");  // UPDATE Server (URL or IP)
+    strcpy(config.MQTT_User, "admin");                   // MQTT Broker username
+    strcpy(config.MQTT_Password, "admin");               // MQTT Broker password
+    strcpy(config.UPDATE_Server, "iothubna.hopto.org");  // UPDATE Server (URL or IP)
     config.UPDATE_Port = 1880;                            // UPDATE Server TCP port
-    config.UPDATE_User = String("user");                  // UPDATE Server username
-    config.UPDATE_Password = String("1q2w3e4r");          // UPDATE Server password
+    strcpy(config.UPDATE_User, "user");                  // UPDATE Server username
+    strcpy(config.UPDATE_Password, "1q2w3e4r");          // UPDATE Server password
     config.Temp_Corr = 0;     // Sensor Temperature Correction Factor, typically due to electronic self heat.
 }
 
 
 #include <storage.h>
-#include <hardware.h>
+#include <hw8266.h>
 #include <mywifi.h>
 #include <telnet.h>
 #include <ntp.h>
-#include <web.h>
+//#include <web.h>
 #include <ota.h>
 #include <mqtt.h>
 #include <global.h>
 
 
 // **** Normal code definition here ...
+
 
 
 // **** Normal code functions here ...
@@ -126,6 +127,7 @@ void setup() {
   Serial.println("Hello World!");
   Serial.println("My ID is " + ChipID + " and I'm running version " + SWVer);
   Serial.println("Reset reason: " + ESP.getResetReason());
+
 
   // Output GPIOs
 
@@ -150,13 +152,13 @@ void setup() {
       if (config.OTA) ota_setup();
 
   // Start ESP Web Service
-      if (config.WEB) web_setup();
+      //if (config.WEB) web_setup();
 
   // Start MQTT service
       mqtt_setup();
 
   //  LOW Battery check
-      LOW_Batt_check();               // Must be execute after mqtt_setup. If LOW Batt, it will DeepSleep forever!
+      if (BattPowered) LOW_Batt_check();    // Must be execute after mqtt_setup. If LOW Batt, it will DeepSleep forever!
 
 
   // **** Normal SETUP Sketch code here...
@@ -188,7 +190,7 @@ void loop() {
       if (config.OTA) ota_loop();
 
   // ESP Web Server requests handling
-      if (config.WEB) web_loop();
+      //if (config.WEB) web_loop();
 
   // MQTT handling
       mqtt_loop();
@@ -196,8 +198,8 @@ void loop() {
   // DeepSleep handling
       deepsleep_loop();
 
-  // **** Normal LOOP Skecth code here ...
 
+  // **** Normal LOOP Skecth code here ...
 
 
 }  // end of loop()
