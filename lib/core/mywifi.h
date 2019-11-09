@@ -157,7 +157,7 @@ String wifi_listAPs() {
     }
 
     //root.prettyPrintTo(Serial);               // dump pretty format to serial interface
-    serializeJson(doc, jsonString); //root.printTo(jsonString);
+    serializeJson(doc, jsonString);             //root.printTo(jsonString);
     // Serial.print("jsonString ready to Publish: "); Serial.println((jsonString));
     return jsonString;
 }
@@ -179,7 +179,7 @@ String wifi_listSTAs() {
     }
 
     //root.prettyPrintTo(Serial);               // dump pretty format to serial interface
-    serializeJson(doc, jsonString); //root.printTo(jsonString);
+    serializeJson(doc, jsonString);             //root.printTo(jsonString);
     //Serial.print("jsonString ready to Publish: "); Serial.println((jsonString));
     return jsonString;
 }
@@ -204,7 +204,7 @@ String wifi_listProbes() {
     }
 
     //root.prettyPrintTo(Serial);               // dump pretty format to serial interface
-    serializeJson(doc, jsonString); //root.printTo(jsonString);
+    serializeJson(doc, jsonString);             //root.printTo(jsonString);
     Serial.print("jsonString ready to Publish: "); Serial.println((jsonString));
     return jsonString;
 }
@@ -220,7 +220,7 @@ void wifi_connect() {
       wifi_station_set_hostname(host_name.c_str());      // WiFi.hostname(host_name);
       //Serial.printf("Calculated hostname: %s\n", WiFi.hostname().c_str());
       if (config.STAMode) {
-          // Setup ESP8266 in Station mode
+          // Setup ESP in Station mode
           WiFi.mode(WIFI_STA);
           // the IP address for the shield
           if (!config.dhcp) {

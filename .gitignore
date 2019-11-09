@@ -46,7 +46,9 @@ Network Trash Folder
 Temporary Items
 .apdisk
 .pioenvs
+.vscode
 .piolibdeps
 .clang_complete
 .gcc-flags.json
+.pio
 Backup

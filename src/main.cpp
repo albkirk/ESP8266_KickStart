@@ -78,8 +78,8 @@ void config_defaults() {
     config.WEB = false;                                   // 0 - Disabled, 1 - Enabled
     config.Remote_Allow = true;                           // 0 - Not Allow, 1 - Allow remote operation
     config.STAMode = true;                                // 0 - AP or AP+STA Mode, 1 - Station only Mode
-    strcpy(config.ssid, "ThomsonCasaN");                 // Wireless LAN SSID (STA mode)
-    strcpy(config.WiFiKey, "12345678");                  // Wireless LAN Key (STA mode)
+    strcpy(config.ssid, "WiFiCasaN");                     // Wireless LAN SSID (STA mode)
+    strcpy(config.WiFiKey, "12345678");                   // Wireless LAN Key (STA mode)
     config.dhcp = true;                                   // 0 - Static IP, 1 - DHCP
     config.IP[0] = 192; config.IP[1] = 168; config.IP[2] = 1; config.IP[3] = 10;
     config.Netmask[0] = 255; config.Netmask[1] = 255; config.Netmask[2] = 255; config.Netmask[3] = 0;
@@ -119,7 +119,7 @@ void config_defaults() {
 
 
 void setup() {
-// Start Serial interface
+ // Start Serial interface
   Serial.begin(74880);                      //This odd baud speed will show ESP8266 boot diagnostics too.
   //Serial.begin(115200);                   // For faster communication use 115200
 
@@ -197,7 +197,6 @@ void loop() {
 
   // DeepSleep handling
       deepsleep_loop();
-
 
   // **** Normal LOOP Skecth code here ...
 

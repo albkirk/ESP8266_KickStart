@@ -40,7 +40,6 @@ bool actualUpdate(bool sketch=true){
 
     // Default Hostname is esp8266-[ChipID] for ES8266 and esp3232-[MAC] for ESP-32
     // ArduinoOTA.setHostname("my8266");
-    // ArduinoOTA.setHostname("myesp32");
 
     // No authentication by default
     ArduinoOTA.setPassword((const char *)"12345678");
