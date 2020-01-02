@@ -215,23 +215,20 @@ String wifi_listProbes() {
 void wifi_connect() {
   //  Connect to WiFi acess point or start as Acess point
   if ( WiFi.status() != WL_CONNECTED ) {
-      //Serial.printf("Default hostname: %s\n", WiFi.hostname().c_str());
-      String host_name = String(config.Location + String("-") + config.DeviceName);
-      wifi_station_set_hostname(host_name.c_str());      // WiFi.hostname(host_name);
-      //Serial.printf("Calculated hostname: %s\n", WiFi.hostname().c_str());
       if (config.STAMode) {
           // Setup ESP in Station mode
           WiFi.mode(WIFI_STA);
           // the IP address for the shield
           if (!config.dhcp) {
-            // Static IP (No dhcp) may be handy for fast WiFi registration
+              // Static IP (No dhcp) may be handy for fast WiFi registration
               IPAddress StaticIP(config.IP[0], config.IP[1], config.IP[2], config.IP[3]);
               IPAddress Gateway(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);
               IPAddress Subnet(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3]);
               IPAddress DNS(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);
               WiFi.config(StaticIP, Gateway, Subnet, DNS);
           }
-          //delay(1000);                        // required to comment for fast WiFi registration
+          String host_name = String(config.Location + String("-") + config.DeviceName);
+          WiFi.hostname(host_name.c_str());
           WiFi.begin(config.ssid, config.WiFiKey);
           WIFI_state = WiFi.waitForConnectResult();
           if ( WIFI_state == WL_CONNECTED ) {

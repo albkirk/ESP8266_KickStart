@@ -26,8 +26,8 @@
 #include "custohttpUpdate.h"
 #include <StreamString.h>
 
-extern "C" uint32_t _SPIFFS_start;
-extern "C" uint32_t _SPIFFS_end;
+extern "C" uint32_t _FS_start;
+extern "C" uint32_t _FS_end;
 
 custohttpUpdate::custohttpUpdate(void)
         : _httpClientTimeout(8000)
@@ -223,6 +223,7 @@ HTTPUpdateResult custohttpUpdate::handleUpdate(HTTPClient& http, const String& c
     http.useHTTP10(true);
     http.setTimeout(_httpClientTimeout);
     http.setUserAgent(F("ESP8266-http-Update"));
+    http.addHeader(F("x-ESP8266-Chip-ID"), String(ESP.getChipId()));
     http.addHeader(F("x-ESP8266-STA-MAC"), WiFi.macAddress());
     http.addHeader(F("x-ESP8266-AP-MAC"), WiFi.softAPmacAddress());
     http.addHeader(F("x-ESP8266-free-space"), String(ESP.getFreeSketchSpace()));
@@ -281,7 +282,7 @@ HTTPUpdateResult custohttpUpdate::handleUpdate(HTTPClient& http, const String& c
         if(len > 0) {
             bool startUpdate = true;
             if(spiffs) {
-                size_t spiffsSize = ((size_t) &_SPIFFS_end - (size_t) &_SPIFFS_start);
+                size_t spiffsSize = ((size_t) &_FS_end - (size_t) &_FS_start);
                 if(len > (int) spiffsSize) {
                     DEBUG_HTTP_UPDATE("[httpUpdate] spiffsSize to low (%d) needed: %d\n", spiffsSize, len);
                     startUpdate = false;
@@ -308,7 +309,7 @@ HTTPUpdateResult custohttpUpdate::handleUpdate(HTTPClient& http, const String& c
                 int command;
 
                 if(spiffs) {
-                    command = U_SPIFFS;
+                    command = U_FS;
                     DEBUG_HTTP_UPDATE("[httpUpdate] runUpdate spiffs...\n");
                 } else {
                     command = U_FLASH;

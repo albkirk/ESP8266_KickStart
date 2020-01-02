@@ -14,12 +14,11 @@
 // HARWARE & SOFTWARE Version
 #define BRANDName "AlBros_Team"                         // Hardware brand name
 #define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "10.05"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define SWVer "10.07"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
 
-// Battery & ESP Voltage
+// Power Source & Battery Level
 #define BattPowered true                                // Is the device battery powered?
-#define LDO_Corr float(0.3)                             // Battery Voltage [volt] corrective Factor due to LDO/Diode voltage drop
-#define Batt_L_Thrs 5                                   // Battery level threshold [0%-100%] (before slepping forever).
+#define Batt_L_Thrs 15                                   // Battery level threshold [0%-100%] (before slepping forever).
 
 // GPIO to Function Assignment
 #define Using_ADC false                                 // will this device use the ADC? (if not it will measure the interval voltage)
@@ -60,6 +59,7 @@ struct __attribute__((__packed__)) strConfig {
   char UPDATE_User[16];
   char UPDATE_Password[16];
   long Temp_Corr;
+  float LDO_Corr;
 } config;
 
 
@@ -88,15 +88,16 @@ void config_defaults() {
     config.Update_Time_Via_NTP_Every = 1200;              // Time in minutes to re-sync the clock
     config.TimeZone = 0;                                  // -12 to 13. See Page_NTPSettings.h why using -120 to 130 on the code.
     config.isDayLightSaving = 1;                          // 0 - Disabled, 1 - Enabled
-    strcpy(config.MQTT_Server, "iothubna.hopto.org");    // MQTT Broker Server (URL or IP)
+    strcpy(config.MQTT_Server, "iothubna.hopto.org");     // MQTT Broker Server (URL or IP)
     config.MQTT_Port = 1883;                              // MQTT Broker TCP port
-    strcpy(config.MQTT_User, "admin");                   // MQTT Broker username
-    strcpy(config.MQTT_Password, "admin");               // MQTT Broker password
-    strcpy(config.UPDATE_Server, "iothubna.hopto.org");  // UPDATE Server (URL or IP)
+    strcpy(config.MQTT_User, "admin");                    // MQTT Broker username
+    strcpy(config.MQTT_Password, "admin");                // MQTT Broker password
+    strcpy(config.UPDATE_Server, "iothubna.hopto.org");   // UPDATE Server (URL or IP)
     config.UPDATE_Port = 1880;                            // UPDATE Server TCP port
-    strcpy(config.UPDATE_User, "user");                  // UPDATE Server username
-    strcpy(config.UPDATE_Password, "1q2w3e4r");          // UPDATE Server password
+    strcpy(config.UPDATE_User, "user");                   // UPDATE Server username
+    strcpy(config.UPDATE_Password, "1q2w3e4r");           // UPDATE Server password
     config.Temp_Corr = 0;     // Sensor Temperature Correction Factor, typically due to electronic self heat.
+    config.LDO_Corr = 0.6;                                // Battery Voltage [volt] corrective Factor due to LDO/Diode voltage drop
 }
 
 
@@ -104,37 +105,30 @@ void config_defaults() {
 #include <hw8266.h>
 #include <mywifi.h>
 #include <telnet.h>
-#include <ntp.h>
-//#include <web.h>
-#include <ota.h>
 #include <mqtt.h>
+#include <ntp.h>
+#include <ota.h>
+//#include <web.h>
 #include <global.h>
-
-
-// **** Normal code definition here ...
-
-
-
-// **** Normal code functions here ...
+#include <project.h>
+#include <mqttactions.h>                    // Added later because functions from project are called here.
 
 
 void setup() {
- // Start Serial interface
-  Serial.begin(74880);                      //This odd baud speed will show ESP8266 boot diagnostics too.
-  //Serial.begin(115200);                   // For faster communication use 115200
+  // Start Serial interface
+      Serial.begin(74880);                  //This odd baud speed will show ESP8266 boot diagnostics too.
+      //Serial.begin(115200);               // For faster communication use 115200
 
-  Serial.println(" ");
-  Serial.println("Hello World!");
-  Serial.println("My ID is " + ChipID + " and I'm running version " + SWVer);
-  Serial.println("Reset reason: " + ESP.getResetReason());
-
-
-  // Output GPIOs
-
-  // Input GPIOs
+      Serial.println(" ");
+      Serial.println("Hello World!");
+      Serial.println("My ID is " + ChipID + " and I'm running version " + SWVer);
+      Serial.println("Reset reason: " + ESP.getResetReason());
 
   // Start Hardware services, like: ESP_LED. DHT, internal ADC,...
       hw_setup();
+
+  //  Project HW
+      project_hw();
 
   // Start Storage service and read stored configuration
       storage_setup();
@@ -142,26 +136,29 @@ void setup() {
   // Start WiFi service (Station or/and as Access Point)
       wifi_setup();
 
-  // Start NTP service
-      ntp_setup();
-
   // Start TELNET service
       if (config.TELNET) telnet_setup();
 
+ // Start MQTT service
+      mqtt_setup();
+      mqtt_actions();
+
+  // Start NTP service
+      ntp_setup();
+
   // Start OTA service
       if (config.OTA) ota_setup();
+      ota_http_upg();
 
   // Start ESP Web Service
       //if (config.WEB) web_setup();
-
-  // Start MQTT service
-      mqtt_setup();
 
   //  LOW Battery check
       if (BattPowered) LOW_Batt_check();    // Must be execute after mqtt_setup. If LOW Batt, it will DeepSleep forever!
 
 
-  // **** Normal SETUP Sketch code here...
+  // **** Project SETUP Sketch code here...
+      project_setup();
 
 
   // Last bit of code before leave setup
@@ -180,11 +177,14 @@ void loop() {
   // WiFi handling
       wifi_loop();
 
-  // NTP handling
-      ntp_loop();
-
   // TELNET handling
       if (config.TELNET) telnet_loop();
+
+  // MQTT handling
+      mqtt_loop();
+
+  // NTP handling
+      ntp_loop();
 
   // OTA request handling
       if (config.OTA) ota_loop();
@@ -192,13 +192,12 @@ void loop() {
   // ESP Web Server requests handling
       //if (config.WEB) web_loop();
 
-  // MQTT handling
-      mqtt_loop();
-
-  // DeepSleep handling
+  // Global loops handling
       deepsleep_loop();
 
-  // **** Normal LOOP Skecth code here ...
+  // **** Project LOOP Sketch code here ...
+      project_loop();
+
 
 
 }  // end of loop()

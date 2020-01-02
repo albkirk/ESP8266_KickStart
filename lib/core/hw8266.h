@@ -12,7 +12,7 @@
 #endif
 
 // Battery & ESP Voltage
-#define Batt_Max float(4.2)                 // Battery Highest voltage.  [v]
+#define Batt_Max float(4.1)                 // Battery Highest voltage.  [v]
 #define Batt_Min float(3.0)                 // Battery lowest voltage.   [v]
 #define Vcc float(3.3)                      // Theoretical/Typical ESP voltage. [v]
 #define VADC_MAX float(1.0)                 // Maximum ADC Voltage input
@@ -38,6 +38,19 @@ unsigned long now_millis=0;
 unsigned long Pace_millis=3000;
 unsigned long LED_millis=300;               // 10 slots available (3000 / 300)
 unsigned long BUZZER_millis=500;            // 6 Buzz beeps maximum  (3000 / 500)
+
+
+// Standard Actuators STATUS
+float CALIBRATE = 0;                        // float
+float CALIBRATE_Last = 0;                   // float
+unsigned int LEVEL = 0;                     // [0-100]
+unsigned int LEVEL_Last = 0;                // [0-100]
+int POSITION = 0;                           // [-100,+100]
+int POSITION_Last = 0;                      // [-100,+100]
+boolean SWITCH = false;
+boolean SWITCH_Last = false;
+unsigned long TIMER = 0;                     // [0-7200]  Minutes                 
+
 
 // Functions //
 String HEXtoUpperString(uint32_t hexval, uint hexlen) {
@@ -70,8 +83,12 @@ float getVoltage() {
         delay(50);
     };
     voltage = voltage / Number_of_measures;
-    voltage = voltage / 1000.0 + LDO_Corr;
+    voltage = voltage / 1000.0 + config.LDO_Corr;
     Serial.println("Averaged and Corrected Voltage: " + String(voltage));
+    if (voltage > Batt_Max ) {
+        Serial.println("Voltage will be truncated to Batt_Max: " + String(Batt_Max));
+        voltage = Batt_Max;
+    }
     return ((voltage - Batt_Min) / (Batt_Max - Batt_Min)) * 100.0;
 }
 
@@ -156,10 +173,10 @@ float getHumidity() {
 return -1;
 }
 
-void ESPBoot() {
-  Serial.println("Booting in 3 seconds...");
-  delay(3000);
-  ESP.restart();
+void ESPRestart() {
+    Serial.println("Restarting in 3 seconds...");
+    delay(3000);
+    ESP.restart();
 }
 
 String ESPWakeUpReason() {
@@ -209,7 +226,7 @@ void hw_setup() {
   // Output GPIOs
       if (LED_esp>=0) {
           pinMode(LED_esp, OUTPUT);
-          digitalWrite(LED_esp, LOW);                     // initialize LED off
+          digitalWrite(LED_esp, boolean(!config.LED));                     // initialize LED off
       }
   // Input GPIOs
 
