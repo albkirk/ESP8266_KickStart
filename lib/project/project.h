@@ -1,4 +1,5 @@
 // **** Project code definition here ...
+#include <ambient.h>
 
 
 
@@ -13,9 +14,14 @@ void project_hw() {
 
 
 void project_setup() {
+  // Start Ambient devices
+      ambient_setup();
 
 }
 
 void project_loop() {
+  // Ambient handing
+      if ((millis() - 3500) % ((TIMER+1) * 60000) < 15) ambient_data();      // (TIMER+1) bigger than zero or dog bites!!
+
 
 }

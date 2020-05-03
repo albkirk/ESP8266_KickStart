@@ -215,48 +215,63 @@ String wifi_listProbes() {
 void wifi_connect() {
   //  Connect to WiFi acess point or start as Acess point
   if ( WiFi.status() != WL_CONNECTED ) {
-      if (config.STAMode) {
-          // Setup ESP in Station mode
-          WiFi.mode(WIFI_STA);
-          // the IP address for the shield
-          if (!config.dhcp) {
-              // Static IP (No dhcp) may be handy for fast WiFi registration
-              IPAddress StaticIP(config.IP[0], config.IP[1], config.IP[2], config.IP[3]);
-              IPAddress Gateway(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);
-              IPAddress Subnet(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3]);
-              IPAddress DNS(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);
-              WiFi.config(StaticIP, Gateway, Subnet, DNS);
-          }
-          String host_name = String(config.Location + String("-") + config.DeviceName);
-          WiFi.hostname(host_name.c_str());
-          WiFi.begin(config.ssid, config.WiFiKey);
-          WIFI_state = WiFi.waitForConnectResult();
-          if ( WIFI_state == WL_CONNECTED ) {
-              Serial.print("Connected to WiFi network! " + String(config.ssid) + " IP: "); Serial.println(WiFi.localIP());
-              rtcData.LastWiFiChannel = uint(wifi_get_channel);
-          }
-      }
-      else {
-          // Initialize Wifi in AP+STA mode
-          WiFi.mode(WIFI_AP_STA);
-          WiFi.begin(config.ssid, config.WiFiKey);
-          WIFI_state = WiFi.waitForConnectResult();
-          if ( WIFI_state == WL_CONNECTED ) {
-              Serial.print("Connected to WiFi network! " + String(config.ssid) + " IP: "); Serial.println(WiFi.localIP());
-          }
-          //WiFi.mode(WIFI_AP);                 // comment the 6 lines above if you need AP only
-          WiFi.softAP(ESP_SSID.c_str());
-          //WiFi.softAP(config.ssid);
-          Serial.print("WiFi in AP mode, with IP: "); Serial.println(WiFi.softAPIP());
-      }
+        if (config.STAMode) {
+            // Setup ESP in Station mode
+            WiFi.mode(WIFI_STA);
+            // the IP address for the shield
+            if (!config.DHCP) {
+                WiFi.persistent(true);                   // required for fast WiFi registration
+                // Static IP (No DHCP) may be handy for fast WiFi registration
+                IPAddress StaticIP(config.IP[0], config.IP[1], config.IP[2], config.IP[3]);
+                IPAddress Gateway(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);
+                IPAddress Subnet(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3]);
+                IPAddress DNS(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3]);
+                WiFi.config(StaticIP, Gateway, Subnet, DNS);
+            };
+            String host_name = String(config.Location + String("-") + config.DeviceName);
+            WiFi.hostname(host_name.c_str());
+            if( RTC_read() ) {
+                // The RTC data was good, make a quick connection
+                Serial.print("Connecting to WiFi network using RTD data... ");
+                WiFi.begin( config.ssid, config.WiFiKey, rtcData.LastWiFiChannel, rtcData.bssid, true );
+                WIFI_state = WiFi.waitForConnectResult();
+                if ( WIFI_state != WL_CONNECTED ) {
+                    Serial.println(" ---ERROR!?!. Trying using defaults. ");
+                    WiFi.begin(config.ssid, config.WiFiKey);
+                    WIFI_state = WiFi.waitForConnectResult();
+                };
+            }
+            else {
+                // The RTC data was not valid, so make a regular connection
+                Serial.print("Connecting to WiFi network without RTD data... ");
+                WiFi.begin(config.ssid, config.WiFiKey);
+                WIFI_state = WiFi.waitForConnectResult();
+            }
+            if ( WIFI_state == WL_CONNECTED ) {
+                Serial.print("Connected to WiFi network! " + String(config.ssid) + " IP: "); Serial.println(WiFi.localIP());
+                //rtcData.LastWiFiChannel = uint(wifi_get_channel);
+            };
+        }
+        else {
+            // Initialize Wifi in AP+STA mode
+            WiFi.mode(WIFI_AP_STA);
+            WiFi.begin(config.ssid, config.WiFiKey);
+            WIFI_state = WiFi.waitForConnectResult();
+            if ( WIFI_state == WL_CONNECTED ) {
+                Serial.print("Connected to WiFi network! " + String(config.ssid) + " IP: "); Serial.println(WiFi.localIP());
+            }
+            //WiFi.mode(WIFI_AP);                 // comment the 6 lines above if you need AP only
+            WiFi.softAP(ESP_SSID.c_str());
+            //WiFi.softAP(config.ssid);
+            Serial.print("WiFi in AP mode, with IP: "); Serial.println(WiFi.softAPIP());
+        }
   }
   else WIFI_state = WL_CONNECTED;
 }
 
 
 void wifi_setup() {
-    WiFi.mode(WIFI_OFF);
-    //WiFi.persistent(false);                   // required for fast WiFi registration
+    WiFi.mode(WIFI_RESUME);
     wifi_connect();
 }
 

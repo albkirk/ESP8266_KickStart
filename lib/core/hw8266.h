@@ -1,10 +1,17 @@
-#include "Adafruit_Sensor.h"
-#include <DHT.h>
-
 //System Parameters
 #define ChipID HEXtoUpperString(ESP.getChipId(), 6)
-#define ESP_SSID String("ESP-" + ChipID)              // SSID used as Acces Point
-#define Number_of_measures 10                         // Number of value samples (measurements) to calculate average
+#define ESP_SSID String("ESP-" + ChipID)                // SSID used as Acces Point
+#define Number_of_measures 5                           // Number of value samples (measurements) to calculate average
+
+// The ESP8266 RTC memory is arranged into blocks of 4 bytes. The access methods read and write 4 bytes at a time,
+// so the RTC data structure should be padded to a 4-byte multiple.
+struct __attribute__((__packed__)) struct_RTC {
+  uint32_t crc32 = 0U;                      // 4 bytes   4 in total
+  uint8_t bssid[6];                         // 6 bytes, 10 in total
+  uint8_t LastWiFiChannel = 0;              // 1 byte,  11 in total
+  uint8_t padding = 0;                      // 1 byte,  12 in total
+  unsigned long lastUTCTime = 0UL;          // 4 bytes? 16 in total
+} rtcData;
 
 // ADC to internal voltage
 #if Using_ADC == false
@@ -13,23 +20,11 @@
 
 // Battery & ESP Voltage
 #define Batt_Max float(4.1)                 // Battery Highest voltage.  [v]
-#define Batt_Min float(3.0)                 // Battery lowest voltage.   [v]
+#define Batt_Min float(2.8)                 // Battery lowest voltage.   [v]
 #define Vcc float(3.3)                      // Theoretical/Typical ESP voltage. [v]
 #define VADC_MAX float(1.0)                 // Maximum ADC Voltage input
 float voltage = 0.0;                        // Input Voltage [v]
 float Batt_Level = 100.0;                   // Battery level [0%-100%]
-
-// Temperature Variables and Sensors
-#define samp_intv int(300)                  // Temperature and Humidity Sampling Interval value in seconds
-unsigned long curr_time;                    // Variable used to write the current time
-unsigned long last_sample;                  // Variable used to write time the last sample was taken
-
-// Initialize DHT sensor.
-#define DHTTYPE DHT22                       // using the DHT22 Model
-DHT dht_val(DHTPIN, DHTTYPE);
-
-//NTC temperature
-#define Rs 47000                            // 47KOhm Voltage Dividor Resistor
 
 // Timers for millis used on Sleeping and LED flash
 unsigned long ONTime_Offset=0;
@@ -47,9 +42,11 @@ unsigned int LEVEL = 0;                     // [0-100]
 unsigned int LEVEL_Last = 0;                // [0-100]
 int POSITION = 0;                           // [-100,+100]
 int POSITION_Last = 0;                      // [-100,+100]
-boolean SWITCH = false;
-boolean SWITCH_Last = false;
-unsigned long TIMER = 0;                     // [0-7200]  Minutes                 
+bool SWITCH = false;                        // [OFF / ON]
+bool SWITCH_Last = false;                   // [OFF / ON]
+unsigned long TIMER = 0;                    // [0-7200]  Minutes                 
+unsigned long TIMER_Last = 0;               // [0-7200]  Minutes                 
+unsigned long COUNTER = 0;
 
 
 // Functions //
@@ -66,11 +63,73 @@ String HEXtoUpperString(uint32_t hexval, uint hexlen) {
     return String(buffer);
 }
 
+String CharArray_to_StringHEX(const char *CharArray_value, uint CharArray_length) {
+    String strgHEX = "";
+    for (size_t i = 0; i < CharArray_length; i++)
+    {
+        strgHEX +=  String(CharArray_value[i], HEX);
+    }
+    return strgHEX;
+}
+    
+uint32_t calculateCRC32( const uint8_t *data, size_t length ) {
+  uint32_t crc = 0xffffffff;
+  while( length-- ) {
+    uint8_t c = *data++;
+    for( uint32_t i = 0x80; i > 0; i >>= 1 ) {
+      bool bit = crc & 0x80000000;
+      if( c & i ) {
+        bit = !bit;
+      }
+
+      crc <<= 1;
+      if( bit ) {
+        crc ^= 0x04c11db7;
+      }
+    }
+  }
+
+  return crc;
+}
+
+// Read RTC memory (where the Wifi data is stored)
+bool RTC_read() {
+    if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
+        // Calculate the CRC of what we just read from RTC memory, but skip the first 4 bytes as that's the checksum itself.
+        uint32_t crc = calculateCRC32( ((uint8_t*)&rtcData) + 4, sizeof( rtcData ) - 4 );
+        if( crc == rtcData.crc32 ) {
+             Serial.print("Read  crc: " + String(rtcData.crc32) + "\t");
+             Serial.print("Read  BSSID: " + CharArray_to_StringHEX((const char*)rtcData.bssid, sizeof(rtcData.bssid)) + "\t");
+             Serial.print("Read  LastWiFiChannel: " + String(rtcData.LastWiFiChannel) + "\t");
+             Serial.println("Read  Last Date: " + String(rtcData.lastUTCTime));
+             return true;
+        }
+    }
+    return false;
+}
+
+bool RTC_write() {
+// Update rtcData structure
+    rtcData.LastWiFiChannel = WiFi.channel();
+    memcpy( rtcData.bssid, WiFi.BSSID(), 6 ); // Copy 6 bytes of BSSID (AP's MAC address)
+    rtcData.crc32 = calculateCRC32( ((uint8_t*)&rtcData) + 4, sizeof( rtcData ) - 4 );
+    //rtcData.lastUTCTime = curUnixTime();
+    Serial.print("Write crc: " + String(rtcData.crc32) + "\t");
+    Serial.print("Write BSSID: " + CharArray_to_StringHEX((const char*)rtcData.bssid, sizeof(rtcData.bssid)) + "\t");
+    Serial.print("Write LastWiFiChannel: " + String(rtcData.LastWiFiChannel) + "\t");
+    Serial.println("Write Last Date: " + String(rtcData.lastUTCTime));
+
+// Write rtcData back to RTC memory
+    if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) return true;
+    else return false;
+}
+
+
 //  ESP8266
-void GoingToSleep(byte Time_minutes = 0) {
-  //rtcData.lastUTCTime = curUnixTime();
-  //RTC_write();
-  ESP.deepSleep( Time_minutes * 60 * 1000000);   // time in minutes converted to microseconds
+void GoingToSleep(byte Time_minutes = 0, unsigned long currUTime = 0 ) {
+    rtcData.lastUTCTime = currUTime;
+    RTC_write();
+    ESP.deepSleep( Time_minutes * 60 * 1000000);          // time in minutes converted to microseconds
 }
 
 
@@ -104,118 +163,50 @@ long getRSSI() {
 }
 
 
-float getNTCThermister() {
-  // Return temperature as Celsius
-  int val = 0;
-  for(int i = 0; i < Number_of_measures; i++) {       // ADC value is read N times
-      val += analogRead(A0);
-      delay(10);
-  }
-  val = val / Number_of_measures;
-
-  double V_NTC = (double)val / 1024;
-  double R_NTC = (Rs * V_NTC) / (Vcc - V_NTC);
-  R_NTC = log(R_NTC);
-  double Tmp = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * R_NTC * R_NTC ))* R_NTC );
-  float Temp = (float)Tmp - 273.15 + config.Temp_Corr;
-  return Temp;
-}
-
-
-float getTemperature() {
-    // Return temperature as Celsius (DHT22 range -40 to +125 degrees Celsius) or -100 if error
-  if (DHTPIN>=0) {
-      float t;
-      int n = 0;
-
-      while (n < 10) {
-          t = dht_val.readTemperature() + config.Temp_Corr;
-          // Check if any reads failed and exit.
-          if (isnan(t)) {
-              Serial.println("Failed to read temperature from DHT sensor!");
-              delay(1000);
-              //t = NULL;
-              n ++;
-          }
-          else {
-              //Serial.print(t);
-              return t;
-          }
-    };
-  }
-  else {
-    return getNTCThermister();
-  }
-  return -100;
-}
-
-
-float getHumidity() {
-    // Read Humidity as Percentage (0-100%) or -1 if error
-
-  float h;
-  int n = 0;
-
-  while (n < 10 ) {
-    h = dht_val.readHumidity();
-    // Check if any reads failed and exit.
-    if (isnan(h)) {
-      Serial.println("Failed to read humidity from DHT sensor!");
-      delay(1000);
-      //h = NULL;
-      n ++;
-    }
-    else {
-      //Serial.print(h);
-      return h;
-    }
-  }
-return -1;
-}
-
 void ESPRestart() {
     Serial.println("Restarting in 3 seconds...");
     delay(3000);
     ESP.restart();
 }
 
-String ESPWakeUpReason() {
+String ESPWakeUpReason() {    // WAKEUP_REASON
   return ESP.getResetReason();
 }
 
-void FormatConfig() {                                 // WARNING!! To be used only as last resource!!!
+void FormatConfig() {                                   // WARNING!! To be used only as last resource!!!
     Serial.println(ESP.eraseConfig());
     delay(5000);
     ESP.reset();
 }
 
-void blink_LED(int slot) {                            // slot range 1 to 10 =>> 3000/300
-    if (LED_esp>=0) {
+void blink_LED(unsigned int slot, int bl_LED = LED_esp, bool LED_OFF = !config.LED) { // slot range 1 to 10 =>> 3000/300
+    if (bl_LED>=0) {
         now_millis = millis() % Pace_millis;
         if (now_millis > LED_millis*(slot-1) && now_millis < LED_millis*slot-LED_millis/2 ) {
-            digitalWrite(LED_esp, boolean(config.LED));   // toggles LED status. will be restored by command below
-            delay(LED_millis/2);
+            digitalWrite(bl_LED, !LED_OFF);             // Turn LED on
+            delay(LED_millis/3);
+            digitalWrite(bl_LED, LED_OFF);              // Turn LED off
         }
     }
 }
 
-void flash_LED(unsigned int n_flash = 1) {
-    if (LED_esp>=0) {
+void flash_LED(unsigned int n_flash = 1, int fl_LED = LED_esp, bool LED_OFF = !config.LED) {
+    if (fl_LED>=0) {
         for (size_t i = 0; i < n_flash; i++) {
-            digitalWrite(LED_esp, boolean(config.LED));     // Turn LED on
+            digitalWrite(fl_LED, !LED_OFF);             // Turn LED on
             delay(LED_millis/3);
-            digitalWrite(LED_esp, boolean(!config.LED));    // Turn LED off
+            digitalWrite(fl_LED, LED_OFF);              // Turn LED off
             delay(LED_millis/3);
         }
     }
 }
 
-void Buzz(unsigned int n_beeps = 1) {                     // number of beeps 1 to 6 =>> 3000/500
+void Buzz(unsigned int n_beeps = 1) {                   // number of beeps 1 to 6 =>> 3000/500
     if (BUZZER>=0) {
         for (size_t i = 0; i < n_beeps; i++) {
-            digitalWrite(BUZZER, HIGH);               // Turn Buzzer on
+            digitalWrite(BUZZER, HIGH);                 // Turn Buzzer on
             delay(BUZZER_millis/6);
-            digitalWrite(BUZZER, LOW);                // Turn Buzzer off
+            digitalWrite(BUZZER, LOW);                  // Turn Buzzer off
             delay(BUZZER_millis/6);
         }
     }
@@ -226,15 +217,20 @@ void hw_setup() {
   // Output GPIOs
       if (LED_esp>=0) {
           pinMode(LED_esp, OUTPUT);
-          digitalWrite(LED_esp, boolean(!config.LED));                     // initialize LED off
+          digitalWrite(LED_esp, boolean(!config.LED));  // initialize LED off
       }
+      if (BUZZER>=0) {
+          pinMode(BUZZER, OUTPUT);
+          digitalWrite(BUZZER, LOW);                    // initialize BUZZER off
+      }
+
   // Input GPIOs
 
-  // Start DHT device
-      if (DHTPIN>=0) dht_val.begin();
+
+      //RTC_read();                                       // Read the RTC memmory
 }
 
 void hw_loop() {
   // LED handling usefull if you need to identify the unit from many
-      if (LED_esp>=0) digitalWrite(LED_esp, boolean(!config.LED));    // Values is reversed due to Pull-UP configuration
+      if (LED_esp>=0) digitalWrite(LED_esp, boolean(!config.LED));  // Values is reversed due to Pull-UP configuration
 }

@@ -45,15 +45,10 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+.pio
 .pioenvs
-.vscode
 .piolibdeps
+.vscode
 .clang_complete
 .gcc-flags.json
-.pio
 Backup
-.vscode/.BROWSE.C_CPP.DB
-.vscode/c_cpp_properties.json
-.vscode/extensions.json
-.vscode/launch.json
-.vscode/settings.json
