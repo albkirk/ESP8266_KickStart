@@ -21,7 +21,7 @@ void project_setup() {
 
 void project_loop() {
   // Ambient handing
-      if ((millis() - 3500) % ((TIMER+1) * 60000) < 15) ambient_data();      // (TIMER+1) bigger than zero or dog bites!!
+      if (TIMER >0) if ((millis() - 3500) % (TIMER * 60000) < 5) ambient_data();      // (TIMER+1) bigger than zero or dog bites!!
 
 
 }

@@ -4,10 +4,15 @@
 #include <AM2320.h>
 
 // Initialize DHT/AM sensor.
+#define DHT_11 1
 #define DHT_22 2
 #define AM_2320 3
 
-#define DHTMODEL DHT22                       // using the DHT22 Model
+#if DHTTYPE == 1
+    #define DHTMODEL DHT11                 // using the DHT11 Model
+#else
+    #define DHTMODEL DHT22                 // using the DHT22 Model either for DHTTYPE == 2 or 3
+#endif
 DHT dht_val(DHTPIN, DHTMODEL);
 AM2320 am_val(&Wire);
 
@@ -82,7 +87,7 @@ float getTemperature() {
         int chk = 0;
 
         while (n < 10) {
-            if (DHTTYPE == DHT_22) {
+            if (DHTTYPE == DHT_11 || DHTTYPE == DHT_22) {
                 //Serial.println("CHK value: " + String(chk));
                 t = dht_val.readTemperature();
                 chk = int(isnan(t));
@@ -120,7 +125,7 @@ float getHumidity() {
   int chk = 0;
 
   while (n < 10 ) {
-    if (DHTTYPE == DHT_22) {
+    if (DHTTYPE == DHT_11 || DHTTYPE == DHT_22) {
         h = dht_val.readHumidity();
         chk = int(isnan(h));
     }
@@ -194,11 +199,11 @@ void ambient_setup() {
     if (DHTPIN>=0 || SDAPIN>=0) {
         TIMER = 15;                                   // Default TIMER value (15 minutes) to get Ambient data.
         // Start Ambient Sensor
+        if (DHTTYPE == DHT_11 || DHTTYPE == DHT_22) dht_val.begin();       // required if using Adafruit Library
         if (DHTTYPE == AM_2320) {
             //I2C_scan();
             Wire.begin(SDAPIN, SCKPIN);
         }
-        if (DHTTYPE == DHT_22) dht_val.begin();       // required if using Adafruit Library
     }
 }
 

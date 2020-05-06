@@ -14,7 +14,7 @@
 // HARWARE & SOFTWARE Version
 #define BRANDName "AlBros_Team"                         // Hardware brand name
 #define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "10.12"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define SWVer "10.13"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
 
 // Power Source & Battery Level
 bool BattPowered = true;                                // Is the device battery powered?
@@ -23,7 +23,7 @@ bool BattPowered = true;                                // Is the device battery
 // GPIO to Function Assignment
 #define Using_ADC false                                 // will this device use the ADC? (if not it will measure the internal voltage)
 #define LED_esp 2                                       // ESP Led is connected to GPIO 2. -1 means NOT used!
-#define DHTTYPE 2                                       // use 2 for "DHT22", or 3 for "AM2320" to select the DHT Model
+#define DHTTYPE 2                                       // use 1 for "DHT11", 2 for "DHT22", or 3 for "AM2320" to select the DHT Model
 #define DHTPIN -1                                       // GPIO connected to DHT Data PIN. -1 means NO DHT used!
 #define SDAPIN -1                                       // GPIO connected to (AM) I2C SDA PIN. -1 means NO SDA used!
 #define SCKPIN -1                                       // GPIO connected to (AM) I2C SCK PIN. -1 means NO SCK used!

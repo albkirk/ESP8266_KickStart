@@ -10,6 +10,7 @@ extern "C" {
 */
 
 //#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>                        // Include the mDNS library
 #include <ArduinoJson.h>
 #include <functions.h>
 
@@ -250,6 +251,10 @@ void wifi_connect() {
             if ( WIFI_state == WL_CONNECTED ) {
                 Serial.print("Connected to WiFi network! " + String(config.ssid) + " IP: "); Serial.println(WiFi.localIP());
                 //rtcData.LastWiFiChannel = uint(wifi_get_channel);
+                if (!MDNS.begin(host_name)) {             // Start the mDNS responder for "host_name.local" domain
+                    Serial.println("Error setting up MDNS responder!");
+                }
+                else Serial.println("mDNS responder started");
             };
         }
         else {
