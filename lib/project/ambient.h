@@ -197,7 +197,6 @@ void ambient_send_data() {
 
 void ambient_setup() {
     if (DHTPIN>=0 || SDAPIN>=0) {
-        TIMER = 15;                                   // Default TIMER value (15 minutes) to get Ambient data.
         // Start Ambient Sensor
         if (DHTTYPE == DHT_11 || DHTTYPE == DHT_22) dht_val.begin();       // required if using Adafruit Library
         if (DHTTYPE == AM_2320) {

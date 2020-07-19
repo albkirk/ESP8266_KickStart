@@ -1,7 +1,7 @@
 //System Parameters
 #define ChipID HEXtoUpperString(ESP.getChipId(), 6)
-#define ESP_SSID String("ESP-" + ChipID)                // SSID used as Acces Point
-#define Number_of_measures 5                           // Number of value samples (measurements) to calculate average
+#define ESP_SSID String("ESP-" + ChipID)               // SSID used as Acces Point
+#define Number_of_measures 3                           // Number of value samples (measurements) to calculate average
 
 // The ESP8266 RTC memory is arranged into blocks of 4 bytes. The access methods read and write 4 bytes at a time,
 // so the RTC data structure should be padded to a 4-byte multiple.
@@ -27,8 +27,8 @@ float voltage = 0.0;                        // Input Voltage [v]
 float Batt_Level = 100.0;                   // Battery level [0%-100%]
 
 // Timers for millis used on Sleeping and LED flash
-unsigned long ONTime_Offset=0;
-unsigned long Extend_time=0;
+unsigned long ONTime_Offset=0;              // [msec]
+unsigned long Extend_time=0;                // [sec]
 unsigned long now_millis=0;
 unsigned long Pace_millis=3000;
 unsigned long LED_millis=300;               // 10 slots available (3000 / 300)
@@ -92,6 +92,21 @@ uint32_t calculateCRC32( const uint8_t *data, size_t length ) {
   return crc;
 }
 
+void keep_IP_address() {
+if (config.DHCP) {
+  if (  WiFi.status() == WL_CONNECTED && IPAddress(config.IP[0], config.IP[1], config.IP[2], config.IP[3]) != WiFi.localIP() ) {
+    Serial.print("OLD: "); Serial.print(IPAddress(config.IP[0], config.IP[1], config.IP[2], config.IP[3])); Serial.print("\t NEW: "); Serial.println(WiFi.localIP());
+    config.IP[0] = WiFi.localIP()[0]; config.IP[1] = WiFi.localIP()[1]; config.IP[2] = WiFi.localIP()[2]; config.IP[3] = WiFi.localIP()[3];
+    config.Netmask[0] = WiFi.subnetMask()[0]; config.Netmask[1] = WiFi.subnetMask()[1]; config.Netmask[2] = WiFi.subnetMask()[2]; config.Netmask[3] = WiFi.subnetMask()[3];
+    config.Gateway[0] = WiFi.gatewayIP()[0]; config.Gateway[1] = WiFi.gatewayIP()[1]; config.Gateway[2] = WiFi.gatewayIP()[2]; config.Gateway[3] = WiFi.gatewayIP()[3];
+    config.DNS_IP[0] = WiFi.dnsIP()[0]; config.DNS_IP[1] = WiFi.dnsIP()[1]; config.DNS_IP[2] = WiFi.dnsIP()[2]; config.DNS_IP[3] = WiFi.dnsIP()[3];
+    Serial.println("Storing new Static IP address for quick boot");
+    storage_write();
+    }
+}
+}
+
+
 // Read RTC memory (where the Wifi data is stored)
 bool RTC_read() {
     if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData))) {
@@ -125,9 +140,22 @@ bool RTC_write() {
 }
 
 
+bool RTC_reset() {
+// Update rtcData structure
+    rtcData.LastWiFiChannel = 0;
+    memcpy( rtcData.bssid, "000000", 6 ); // Copy 6 bytes of BSSID (AP's MAC address)
+    rtcData.crc32 = 0;
+    rtcData.lastUTCTime = 0;
+
+// Write rtcData back to RTC memory
+    if (ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData))) return true;
+    else return false;
+}
+
 //  ESP8266
 void GoingToSleep(byte Time_minutes = 0, unsigned long currUTime = 0 ) {
     rtcData.lastUTCTime = currUTime;
+    keep_IP_address();
     RTC_write();
     ESP.deepSleep( Time_minutes * 60 * 1000000);          // time in minutes converted to microseconds
 }
@@ -175,6 +203,7 @@ String ESPWakeUpReason() {    // WAKEUP_REASON
 
 void FormatConfig() {                                   // WARNING!! To be used only as last resource!!!
     Serial.println(ESP.eraseConfig());
+    RTC_reset();
     delay(5000);
     ESP.reset();
 }
@@ -196,7 +225,7 @@ void flash_LED(unsigned int n_flash = 1, int fl_LED = LED_esp, bool LED_OFF = !c
             digitalWrite(fl_LED, !LED_OFF);             // Turn LED on
             delay(LED_millis/3);
             digitalWrite(fl_LED, LED_OFF);              // Turn LED off
-            delay(LED_millis/3);
+            delay(LED_millis);
         }
     }
 }
@@ -217,7 +246,7 @@ void hw_setup() {
   // Output GPIOs
       if (LED_esp>=0) {
           pinMode(LED_esp, OUTPUT);
-          digitalWrite(LED_esp, boolean(!config.LED));  // initialize LED off
+          digitalWrite(LED_esp, HIGH);                  // initialize LED off
       }
       if (BUZZER>=0) {
           pinMode(BUZZER, OUTPUT);
@@ -227,7 +256,7 @@ void hw_setup() {
   // Input GPIOs
 
 
-      //RTC_read();                                       // Read the RTC memmory
+      //RTC_read();                                      // Read the RTC memmory
 }
 
 void hw_loop() {

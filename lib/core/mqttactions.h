@@ -14,7 +14,7 @@ void on_message(const char* topic, byte* payload, unsigned int msg_length) {
     telnet_println("Payload: " + String((char*)msg));
 
     // Decode JSON request
-    StaticJsonDocument<200> data;
+    StaticJsonDocument<256> data;
     DeserializationError JSONerror = deserializeJson(data, msg);
 
     if (JSONerror) {
@@ -24,61 +24,67 @@ void on_message(const char* topic, byte* payload, unsigned int msg_length) {
 
     // Check request method
     String reqtopic = String(topic);
-    String reqparam = String((const char*)data["param"]);
+    String reqcomm = String((const char*)data["param"]);      // Should be using the "command" instead of "param"
     String reqvalue = String((const char*)data["value"]);
     if (data["value"].is<const char*>() == false) reqvalue = String((long)data["value"]);
-    telnet_println("Received Data: " + reqparam + " = " + reqvalue);
+    telnet_println("Received Data: " + reqcomm + " = " + reqvalue);
 
 
     // System Configuration 
-    if ( reqparam == "DeviceName") strcpy(config.DeviceName, (const char*)data["value"]);
-    if ( reqparam == "Location") strcpy(config.Location, (const char*)data["value"]);
-    if ( reqparam == "ClientID") strcpy(config.ClientID, (const char*)data["value"]);
-    if ( reqparam == "DEEPSLEEP") { config.DEEPSLEEP = bool(data["value"]);storage_write(); }
-    if ( reqparam == "SLEEPTime") { config.SLEEPTime = data["value"];storage_write(); }
-    if ( reqparam == "ONTime") { config.ONTime = data["value"];storage_write(); }
-    if ( reqparam == "ExtendONTime") if (bool(data["value"]) == true) Extend_time = 60;
-    if ( reqparam == "LED") config.LED = bool(data["value"]);
-    if ( reqparam == "TELNET") { config.TELNET = bool(data["value"]); storage_write(); mqtt_restart(); }
-    if ( reqparam == "OTA") { config.OTA = bool(data["value"]); storage_write(); mqtt_restart(); }
-    if ( reqparam == "WEB") { config.WEB = bool(data["value"]); storage_write(); mqtt_restart(); }
-    if ( reqparam == "DHCP") { config.DHCP = bool(data["value"]); storage_write(); mqtt_restart(); }
-    if ( reqparam == "STAMode") config.STAMode = bool(data["value"]);
-    if ( reqparam == "ssid") strcpy(config.ssid, (const char*)data["value"]);
-    if ( reqparam == "WiFiKey") strcpy(config.WiFiKey, (const char*)data["value"]);
-    if ( reqparam == "NTPServerName") strcpy(config.NTPServerName, (const char*)data["value"]);
-    if ( reqparam == "Update_Time_Via_NTP_Every") config.Update_Time_Via_NTP_Every = data["value"];
-    if ( reqparam == "TimeZone") config.TimeZone = data["value"];
-    if ( reqparam == "isDayLightSaving") config.isDayLightSaving = bool(data["value"]);
-    if ( reqparam == "Store") if (bool(data["value"]) == true) storage_write();
-    if ( reqparam == "Boot") if (bool(data["value"]) == true) mqtt_restart();
-    if ( reqparam == "Reset") if (bool(data["value"]) == true) storage_reset();
-    if ( reqparam == "Switch_Def") { 
+    if ( reqcomm == "DeviceName") strcpy(config.DeviceName, (const char*)data["value"]);
+    if ( reqcomm == "Location") strcpy(config.Location, (const char*)data["value"]);
+    if ( reqcomm == "ClientID") strcpy(config.ClientID, (const char*)data["value"]);
+    if ( reqcomm == "DEEPSLEEP") { config.DEEPSLEEP = bool(data["value"]);storage_write(); }
+    if ( reqcomm == "SLEEPTime") { config.SLEEPTime = data["value"];storage_write(); }
+    if ( reqcomm == "ONTime") { config.ONTime = data["value"];storage_write(); }
+    if ( reqcomm == "ExtendONTime") if (bool(data["value"]) == true) Extend_time = 60;
+    if ( reqcomm == "LED") config.LED = bool(data["value"]);
+    if ( reqcomm == "TELNET") { config.TELNET = bool(data["value"]); storage_write(); telnet_setup(); }
+    if ( reqcomm == "OTA") { config.OTA = bool(data["value"]); storage_write(); ESPRestart(); }
+    if ( reqcomm == "WEB") { config.WEB = bool(data["value"]); storage_write(); web_setup(); }
+    if ( reqcomm == "DHCP") { config.DHCP = bool(data["value"]); storage_write(); wifi_connect(); }
+    if ( reqcomm == "STAMode") { config.STAMode = bool(data["value"]); storage_write(); }
+    if ( reqcomm == "APMode") { config.APMode = bool(data["value"]); storage_write(); }
+    if ( reqcomm == "SSID") strcpy(config.SSID, (const char*)data["value"]);
+    if ( reqcomm == "WiFiKey") strcpy(config.WiFiKey, (const char*)data["value"]);
+    if ( reqcomm == "NTPServerName") strcpy(config.NTPServerName, (const char*)data["value"]);
+    if ( reqcomm == "MQTT_Server") { strcpy(config.MQTT_Server, (const char*)data["value"]); storage_write(); }
+    if ( reqcomm == "MQTT_Port") { config.MQTT_Port = data["value"];storage_write(); }
+    if ( reqcomm == "MQTT_Secure") { config.MQTT_Secure = bool(data["value"]); storage_write(); }
+    if ( reqcomm == "MQTT_User") { strcpy(config.MQTT_User, (const char*)data["value"]); storage_write(); }
+    if ( reqcomm == "MQTT_Password") { strcpy(config.MQTT_Password, (const char*)data["value"]); storage_write(); }   
+    if ( reqcomm == "Update_Time_Via_NTP_Every") config.Update_Time_Via_NTP_Every = data["value"];
+    if ( reqcomm == "TimeZone") config.TimeZone = data["value"];
+    if ( reqcomm == "isDayLightSaving") config.isDayLightSaving = bool(data["value"]);
+    if ( reqcomm == "Store") if (bool(data["value"]) == true) storage_write();
+    if ( reqcomm == "Boot") if (bool(data["value"]) == true) mqtt_restart();
+    if ( reqcomm == "Reset") if (bool(data["value"]) == true) storage_reset();
+    if ( reqcomm == "Switch_Def") { 
             config.SWITCH_Default = bool(data["value"]);
             storage_write();
             mqtt_publish(mqtt_pathtele(), "Switch", String(SWITCH));
        }
-    if ( reqparam == "Temp_Corr") { 
+    if ( reqcomm == "Temp_Corr") { 
             config.Temp_Corr = float(data["value"]);
             storage_write();
             mqtt_publish(mqtt_pathtele(), "Temperatura", String(getTemperature()));
        }
-    if ( reqparam == "LDO_Corr") { 
+    if ( reqcomm == "LDO_Corr") { 
             config.LDO_Corr = float(data["value"]);
             storage_write();
             mqtt_publish(mqtt_pathtele(), "BattLevel", String(getVoltage()));
        }
 
     // Standard Actuators/Actions 
-    if ( reqparam == "Level") LEVEL = uint(data["value"]);
-    if ( reqparam == "Position") POSITION = int(data["value"]);
-    if ( reqparam == "Switch") SWITCH = bool(data["value"]);
-    if ( reqparam == "Timer") TIMER = ulong(data["value"]);
-    if ( reqparam == "Counter") COUNTER = ulong(data["value"]);
-    if ( reqparam == "Calibrate") { CALIBRATE = float(data["value"]); }
+    if ( reqcomm == "Level") LEVEL = uint(data["value"]);
+    if ( reqcomm == "Position") POSITION = int(data["value"]);
+    if ( reqcomm == "Switch") SWITCH = bool(data["value"]);
+    if ( reqcomm == "Timer") TIMER = ulong(data["value"]);
+    if ( reqcomm == "Counter") COUNTER = ulong(data["value"]);
+    if ( reqcomm == "Calibrate") { CALIBRATE = float(data["value"]); }
 
 
-    mqtt_custom(reqtopic, reqparam, data);
+    mqtt_custom(reqtopic, data);
 
     storage_print();
 }
@@ -94,16 +100,18 @@ void mqtt_setcallback() {
 void mqtt_setup() {
     mqtt_connect();
     if (MQTT_state == MQTT_CONNECTED) {
-        if (ESPWakeUpReason() != "Deep-Sleep Wake") {
+        if (ESPWakeUpReason() == "Deep-Sleep Wake") mqtt_publish(mqtt_pathtele(), "Status", "WakeUp");
+        else {
             mqtt_publish(mqtt_pathtele(), "Boot", ESPWakeUpReason());
             mqtt_publish(mqtt_pathtele(), "Brand", BRANDName);
             mqtt_publish(mqtt_pathtele(), "Model", MODELName);
             mqtt_publish(mqtt_pathtele(), "ChipID", ChipID);
             mqtt_publish(mqtt_pathtele(), "SWVer", SWVer);
+            status_report();
+            mqtt_publish(mqtt_pathtele(), "IP", WiFi.localIP().toString());
+            mqtt_publish(mqtt_pathtele(), "RSSI", String(getRSSI()));
         }
-        status_report();
-        mqtt_publish(mqtt_pathtele(), "RSSI", String(getRSSI()));
-        mqtt_publish(mqtt_pathtele(), "IP", WiFi.localIP().toString());
+        mqtt_dump_data();
     }
     mqtt_setcallback();
 }
@@ -114,9 +122,11 @@ void mqtt_loop() {
     if (!MQTTclient.loop()) {
         if ( millis() - MQTT_LastTime > (MQTT_Retry * 1000)) {
             MQTT_errors ++;
-            Serial.print( "in loop function MQTT ERROR! #: " + String(MQTT_errors) + "  ==> "); Serial.println( MQTTclient.state() );
+            Serial.println( "in loop function MQTT ERROR! #: " + String(MQTT_errors) + "  ==> " + MQTT_state_string(MQTTclient.state()) );
             MQTT_LastTime = millis();
             mqtt_connect();
+            status_report();
+            mqtt_dump_data();
         }
     }
     yield();

@@ -1,12 +1,11 @@
 void deepsleep_loop() {
-    if (config.DEEPSLEEP && !config.TELNET && !config.OTA && !config.WEB && (millis()/1000) > (ulong(config.ONTime) + ONTime_Offset + Extend_time)) {
+    if (config.DEEPSLEEP && !config.TELNET && !config.OTA && !config.WEB && millis()> ONTime_Offset + (ulong(config.ONTime) + Extend_time)*1000) {
         mqtt_publish(mqtt_pathtele(), "Status", "DeepSleep");
-        mqtt_unsubscribe(mqtt_pathconf(), "+");
         mqtt_disconnect();
         telnet_println("Going to sleep until next event... zzZz :) ");
         delay(100);
         telnet_println("Total time ON: " + String(millis()) + " msec");
-        GoingToSleep(config.SLEEPTime, curUnixTime());
+        GoingToSleep(config.SLEEPTime, curUTCTime());
     }
 
 }
