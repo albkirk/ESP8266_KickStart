@@ -1,7 +1,7 @@
 // HARWARE & SOFTWARE Version
 #define BRANDName "AlBros_Team"                         // Hardware brand name
 #define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "11.01"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define SWVer "11.02"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
 
 // Power Source & Battery Level
 bool BattPowered = true;                                // Is the device battery powered?

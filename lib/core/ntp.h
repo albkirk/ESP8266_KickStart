@@ -139,6 +139,10 @@ void getNTPtime() {
                 UTCTimeStamp = UTCTimeStamp - RefMillis/1000;     // store UTC time stamp since millis() = 0 ... aka @ Boot time!
                 UnixTimeStamp = adjustTimeZone(UTCTimeStamp, config.TimeZone, config.isDayLightSaving);
     }
+    else {
+          NTP_errors ++;
+          telnet_println( "NTP ERROR! ==> NO valid Local Date / Time" );
+    }
 }
 
 unsigned long curUTCTime() {
