@@ -1,7 +1,7 @@
 //System Parameters
 #define ChipID HEXtoUpperString(ESP.getChipId(), 6)
 #define ESP_SSID String("ESP-" + ChipID)               // SSID used as Acces Point
-#define Number_of_measures 3                           // Number of value samples (measurements) to calculate average
+#define Number_of_measures 5                           // Number of value samples (measurements) to calculate average
 
 // The ESP8266 RTC memory is arranged into blocks of 4 bytes. The access methods read and write 4 bytes at a time,
 // so the RTC data structure should be padded to a 4-byte multiple.
@@ -167,7 +167,7 @@ float getVoltage() {
     for(int i = 0; i < Number_of_measures; i++) {
         if (Using_ADC) {voltage += analogRead(A0) * Vcc;}
         else {voltage += ESP.getVcc();} // only later, the (final) measurement will be divided by 1000
-        delay(50);
+        delay(1);
     };
     voltage = voltage / Number_of_measures;
     voltage = voltage / 1000.0 + config.LDO_Corr;
@@ -211,11 +211,16 @@ void FormatConfig() {                                   // WARNING!! To be used 
 void blink_LED(unsigned int slot, int bl_LED = LED_esp, bool LED_OFF = !config.LED) { // slot range 1 to 10 =>> 3000/300
     if (bl_LED>=0) {
         now_millis = millis() % Pace_millis;
+/*
         if (now_millis > LED_millis*(slot-1) && now_millis < LED_millis*slot-LED_millis/2 ) {
             digitalWrite(bl_LED, !LED_OFF);             // Turn LED on
             delay(LED_millis/3);
             digitalWrite(bl_LED, LED_OFF);              // Turn LED off
         }
+*/
+        if (now_millis > LED_millis*(slot-1) && now_millis < LED_millis*slot-LED_millis/2) digitalWrite(bl_LED, !LED_OFF); // Turn LED on
+        now_millis = (millis()-LED_millis/3) % Pace_millis;
+        if (now_millis > LED_millis*(slot-1) && now_millis < LED_millis*slot-LED_millis/2) digitalWrite(bl_LED, LED_OFF); // Turn LED on
     }
 }
 

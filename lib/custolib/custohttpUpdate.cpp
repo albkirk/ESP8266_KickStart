@@ -30,7 +30,7 @@ extern "C" uint32_t _FS_start;
 extern "C" uint32_t _FS_end;
 
 custohttpUpdate::custohttpUpdate(void)
-        : _httpClientTimeout(8000)
+        : _httpClientTimeout(3000)          /// Default is 8000
 {
 }
 

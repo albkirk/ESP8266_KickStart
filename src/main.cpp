@@ -110,6 +110,6 @@ void loop() {
 
   // Global loops handling
       deepsleep_loop();
-      if (BattPowered && ((millis() - 2500) % 60000 < 15)) Batt_OK_check();    // If Batt LOW, it will DeepSleep forever!
+      if (BattPowered && ((millis() - 2500) % 60000 < 5)) Batt_OK_check();    // If Batt LOW, it will DeepSleep forever!
 
 }  // end of loop()
