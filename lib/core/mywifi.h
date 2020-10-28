@@ -68,7 +68,7 @@ void wifi_connect() {
                 IPAddress DNS(config.DNS_IP[0], config.DNS_IP[1], config.DNS_IP[2], config.DNS_IP[3]);
                 WiFi.config(StaticIP, Gateway, Subnet, DNS);
             };
-            String host_name = String(config.Location + String("-") + config.DeviceName);
+            String host_name = String(config.DeviceName + String("-") + config.Location);
             WiFi.hostname(host_name.c_str());
             if( RTC_read() && (ESPWakeUpReason() == "Deep-Sleep Wake") ) {
                 // The RTC data was good, make a quick connection

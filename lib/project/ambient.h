@@ -174,22 +174,22 @@ void ambient_get_data() {
 void ambient_send_data() {
     if ( Temperature == -100 ) {
             telnet_print("Temperatura: -- ERRO! -- \t");
-            mqtt_publish(mqtt_pathtele(), "Status", "ERRO-Temperatura");
+            mqtt_publish(mqtt_pathtele, "Status", "ERRO-Temperatura");
     } else {
             telnet_print("Temperatura: " + String(Temperature) + " C \t");
-            mqtt_publish(mqtt_pathtele(), "Temperatura", String(Temperature));
+            mqtt_publish(mqtt_pathtele, "Temperatura", String(Temperature));
     };
 
     if ( Humidity == -1 ) {
             telnet_print("Humidade: -- ERRO! -- \t");
-            mqtt_publish(mqtt_pathtele(), "Status", "ERRO-Humidade");
+            mqtt_publish(mqtt_pathtele, "Status", "ERRO-Humidade");
     } else {
             telnet_print("Humidade: " + String(Humidity) + " % \t");
-            mqtt_publish(mqtt_pathtele(), "Humidade", String(Humidity));
+            mqtt_publish(mqtt_pathtele, "Humidade", String(Humidity));
     };
           
     telnet_print("Lux: " + String(Lux) + " % \t");
-    mqtt_publish(mqtt_pathtele(), "Lux", String(Lux));
+    mqtt_publish(mqtt_pathtele, "Lux", String(Lux));
     telnet_println("");
 }
 

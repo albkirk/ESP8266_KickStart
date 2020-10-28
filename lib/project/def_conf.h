@@ -1,7 +1,7 @@
 // HARWARE & SOFTWARE Version
 #define BRANDName "AlBros_Team"                         // Hardware brand name
 #define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "11.03"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define SWVer "12.02"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
 
 // Power Source & Battery Level
 bool BattPowered = true;                                // Is the device battery powered?
@@ -29,7 +29,7 @@ void config_defaults() {
     config.LED = true;                                    // 0 - OFF, 1 - ON
     config.TELNET = true;                                 // 0 - Disabled, 1 - Enabled
     config.OTA = true;                                    // 0 - Disabled, 1 - Enabled
-    config.WEB = true;                                    // 0 - Disabled, 1 - Enabled
+    config.WEB = false;                                   // 0 - Disabled, 1 - Enabled
     config.Remote_Allow = true;                           // 0 - Not Allow, 1 - Allow remote operation
     config.STAMode = true;                                // 0 - AP or AP+STA Mode, 1 - Station only Mode
     config.APMode = true;                                 // 0 - AP Mode Disabled, 1 - AP Mode Enabled
@@ -40,7 +40,7 @@ void config_defaults() {
     config.Netmask[0] = 255; config.Netmask[1] = 255; config.Netmask[2] = 255; config.Netmask[3] = 0;
     config.Gateway[0] = 192; config.Gateway[1] = 168; config.Gateway[2] = 1; config.Gateway[3] = 1;
     config.DNS_IP[0] = 192; config.DNS_IP[1] = 168; config.DNS_IP[2] = 1; config.DNS_IP[3] = 93;
-    strcpy(config.NTPServerName, "pt.pool.ntp.org");         // NTP Server
+    strcpy(config.NTPServerName, "pt.pool.ntp.org");      // NTP Server
     config.Update_Time_Via_NTP_Every = 1200;              // Time in minutes to re-sync the clock
     config.TimeZone = 0;                                  // -12 to 13. See Page_NTPSettings.h why using -120 to 130 on the code.
     config.isDayLightSaving = 1;                          // 0 - Disabled, 1 - Enabled
