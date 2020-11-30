@@ -1,4 +1,3 @@
-#include <ArduinoJson.h>
 #include <functions.h>
 
 

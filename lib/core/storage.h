@@ -7,10 +7,10 @@
 #define EEPROMZize 4096                     // 4KB
 #define Mem_Start_Pos 1024                  // Memory starting point Position for the space to write/read data
 
-#include <LittleFS.h>                       // Include the SPIFFS library
-#define MAX_File_Zize 131072                // 128KB
-#define Telemetry_FILE "/telemetry.txt"
-File Flash_file;
+#include <ArduinoJson.h>
+
+bool Load_Default = true;                   // Will it Load Default values? It means it's running for first time.  
+
 
 //
 //  AUXILIAR functions to handle EEPROM
@@ -94,9 +94,20 @@ struct __attribute__((__packed__)) strConfig {
   char UPDATE_Password[32];
   char WEB_User[16];
   char WEB_Password[32];
-  bool SWITCH_Default;
   float Temp_Corr;
   float LDO_Corr;
+  bool HW_Module;
+  bool HASSIO_CFG;
+  bool DEBUG;
+  bool SW_Upgraded;
+  bool SWITCH_Default;
+  unsigned int UPPER_LEVEL;
+  unsigned int LOWER_LEVEL;
+  long MIN_TRAVEL;
+  long MAX_TRAVEL;
+  double Voltage_Multiplier;
+  double Current_Multiplier;
+  double Power_Multiplier;
 } config;
 
 
@@ -107,53 +118,52 @@ struct __attribute__((__packed__)) strConfig {
 //  STORAGE functions
 //
 void storage_print() {
-
-  Serial.printf("Printing Config [%d bytes]\n", sizeof(config));
-  if (sizeof(config) + 16 > Mem_Start_Pos) Serial.println ("WARNING: Memory zones overlapinng!!");
-  Serial.printf("Device Name: %s and Location: %s\n", config.DeviceName, config.Location);
-  Serial.printf("ON time[sec]: %d  -  SLEEP Time[min]: %d -  DEEPSLEEP enabled: %d\n", config.ONTime, config.SLEEPTime, config.DEEPSLEEP);
-  Serial.printf("LED enabled: %d   -  TELNET enabled: %d  -  OTA enabled: %d  -  WEB enabled: %d\n", config.LED, config.TELNET, config.OTA, config.WEB);
-  Serial.printf("WiFi AP Mode: %d  -  WiFi STA Mode: %d   -  WiFi SSID: %s  -  WiFi Key: %s\n", config.APMode, config.STAMode, config.SSID, config.WiFiKey);
+  if (config.DEBUG) {
+    Serial.printf("Printing Config [%d bytes]\n", sizeof(config));
+    if (sizeof(config) + 16 > Mem_Start_Pos) Serial.println ("WARNING: Memory zones overlapinng!!");
+    Serial.printf("Device Name: %s and Location: %s\n", config.DeviceName, config.Location);
+    Serial.printf("ON time[sec]: %d  -  SLEEP Time[min]: %d -  DEEPSLEEP enabled: %d\n", config.ONTime, config.SLEEPTime, config.DEEPSLEEP);
+    Serial.printf("LED enabled: %d   -  TELNET enabled: %d  -  OTA enabled: %d  -  WEB enabled: %d\n", config.LED, config.TELNET, config.OTA, config.WEB);
+    Serial.printf("WiFi AP Mode: %d  -  WiFi STA Mode: %d   -  WiFi SSID: %s  -  WiFi Key: %s\n", config.APMode, config.STAMode, config.SSID, config.WiFiKey);
   
-  Serial.printf("DHCP enabled: %d\n", config.DHCP);
-  if(!config.DHCP) {
+    Serial.printf("DHCP enabled: %d\n", config.DHCP);
+    if(!config.DHCP) {
       Serial.printf("IP: %d.%d.%d.%d\t", config.IP[0],config.IP[1],config.IP[2],config.IP[3]);
       Serial.printf("Mask: %d.%d.%d.%d\t", config.Netmask[0],config.Netmask[1],config.Netmask[2],config.Netmask[3]);
       Serial.printf("Gateway: %d.%d.%d.%d\n", config.Gateway[0],config.Gateway[1],config.Gateway[2],config.Gateway[3]);
       Serial.printf("DNS IP: %d.%d.%d.%d\t", config.DNS_IP[0],config.DNS_IP[1],config.DNS_IP[2],config.DNS_IP[3]);
-  }
-  Serial.printf("MQTT Server: %s  -  Port: %ld  -  Secure: %d  -  ", config.MQTT_Server, config.MQTT_Port, config.MQTT_Secure);
-  Serial.printf("MQTT User: %s  -  MQTT Pass: %s\n", config.MQTT_User, config.MQTT_Password);
-  Serial.printf("NTP Server Name: %s\t", config.NTPServerName);
-  Serial.printf("NTP update every %ld minutes.\t", config.Update_Time_Via_NTP_Every);
-  Serial.printf("Timezone: %ld  -  DayLight: %d\n", config.TimeZone, config.isDayLightSaving);
-
-  Serial.printf("Remote Allowed: %d\t", config.Remote_Allow);
-  Serial.printf("WEB User: %s  -  WEB Pass: %s\n", config.WEB_User, config.WEB_Password);
-  Serial.printf("SWITCH default status: %d\t", config.SWITCH_Default);
-  Serial.printf("Temperature Correction: %f\t", config.Temp_Corr);
-  Serial.printf("LDO Voltage Correction: %f\n", config.LDO_Corr);
-  }
-
-
-boolean storage_read() {
-  Serial.println("Reading Configuration");
-    if (EEPROM.read(0) == 'C' && EEPROM.read(1) == 'F'  && EEPROM.read(2) == 'G' && EEPROMReadlong(3) > 2 && EEPROMReadlong(3) == sizeof(config)) {
-        Serial.println("Configurarion Found!");
-        loadStruct(&config, EEPROMReadlong(3), 15);     // I just decided that it will read/write after address 15
-      return true;
     }
-    else {
-    Serial.println("Configurarion NOT FOUND!!!!");
-        //Serial.println("Value of 0,1,2: " + String(EEPROM.read(0)) + String(EEPROM.read(1)) + String(EEPROM.read(2)));
-        //Serial.println("Value of 3: " + String(EEPROMReadlong(3)));
-    return false;
+    Serial.printf("MQTT Server: %s  -  Port: %ld  -  Secure: %d  -  ", config.MQTT_Server, config.MQTT_Port, config.MQTT_Secure);
+    Serial.printf("MQTT User: %s  -  MQTT Pass: %s\n", config.MQTT_User, config.MQTT_Password);
+    Serial.printf("NTP Server Name: %s\t", config.NTPServerName);
+    Serial.printf("NTP update every %ld minutes.\t", config.Update_Time_Via_NTP_Every);
+    Serial.printf("Timezone: %ld  -  DayLight: %d\n", config.TimeZone, config.isDayLightSaving);
+
+    Serial.printf("Remote Allowed: %d\t", config.Remote_Allow);
+    Serial.printf("WEB User: %s  -  WEB Pass: %s\n", config.WEB_User, config.WEB_Password);
+    Serial.printf("SWITCH default status: %d\t", config.SWITCH_Default);
+    Serial.printf("Temperature Correction: %f\t", config.Temp_Corr);
+    Serial.printf("LDO Voltage Correction: %f\n", config.LDO_Corr);
   }
 }
 
+boolean storage_read() {
+  if (config.DEBUG) Serial.println("Reading Configuration");
+    if (EEPROM.read(0) == 'C' && EEPROM.read(1) == 'F'  && EEPROM.read(2) == 'G' && EEPROMReadlong(3) > 2 && EEPROMReadlong(3) == sizeof(config)) {
+        if (config.DEBUG) Serial.println("Configurarion Found!");
+        loadStruct(&config, EEPROMReadlong(3), 15);     // I just decided that it will read/write after address 15
+      return false;   // "false" means no error
+    }
+    else {
+    if (config.DEBUG) Serial.println("Configurarion NOT FOUND!!!!");
+        //Serial.println("Value of 0,1,2: " + String(EEPROM.read(0)) + String(EEPROM.read(1)) + String(EEPROM.read(2)));
+        //Serial.println("Value of 3: " + String(EEPROMReadlong(3)));
+    return true;      // "true" means failed to read configuration
+  }
+}
 
 void storage_write() {
-  Serial.println("Writing Config");
+  if (config.DEBUG) Serial.println("Writing Config");
   EEPROM.write(0, 'C');
   EEPROM.write(1, 'F');
   EEPROM.write(2, 'G');
@@ -165,108 +175,8 @@ void storage_write() {
   //Serial.println("Value of 3 READ: " + String(EEPROMReadlong(3)));
 }
 
-
-bool storage_save_data(const char *data_source, uint8_t size, int start_address = Mem_Start_Pos) {
-    int pointer = start_address -1;
-    uint8_t data_lenght = 0;
-    char data;
-    do
-    {
-      pointer = pointer + data_lenght + 1;              // +1 is needed to add mem slot (uint8) that indicates the lenght of data
-      data_lenght = EEPROM.read(pointer);
-    } while (data_lenght > 0 && pointer < EEPROMZize);
-    
-    if ( (size + pointer) >= EEPROMZize ) {           // It means it don't have space to write the data.
-        Serial.println("NOT enough space in storage to save data ! ! !");
-        return false;
-    }
-
-    EEPROM.write(pointer, size);                        // writing the size of data at position "0"   
-    //Serial.printf("Wrote Length : %d\n", EEPROM.read(pointer));
-    for(uint8_t i = 0; i < size; i++) {
-          data = data_source[i];
-          Serial.print(data);
-          EEPROM.write(i + pointer + 1, data);          // offseting 1 because the position "0" stores the data lenght
-    }
-    Serial.printf("SAVE_DATA --> pointer: %d \t data Lenght: %d\n", pointer, size);
-    EEPROM.write(pointer + size + 1, 0);                // writing 0 to indicate that MEM is free after this address
-    EEPROM.commit();
-    return true;                                        // true means all went OK
-}
-
-
-int storage_get_data(String *data_dest, int start_address = Mem_Start_Pos) {
-    int pointer = start_address -1;                     // address position where is indicated the lenght of data
-    uint8_t data_lenght = 0;                            // start on -1 because I'm adding +1 on every interaction
-    do
-    {
-        pointer = pointer + data_lenght + 1;            // +1 is needed to add mem slot (uint8) that indicates the lenght of data
-        data_lenght = EEPROM.read(pointer);
-    } while (data_lenght > 0 && EEPROM.read(pointer + data_lenght + 1) > 0);
-
-    if (pointer == start_address && data_lenght == 0 ) return 0;              // it means that there is no data stored
-    
-    Serial.printf("GET_DATA --> pointer: %d \t data Lenght: %d\n", pointer, data_lenght);
-
-    char data_buff[data_lenght];
-    for(size_t i = 0; i < data_lenght; i++) {
-        data_buff[i] = EEPROM.read(i + pointer + 1);
-    }
-    data_buff[data_lenght] = 0;
-    *data_dest = String(data_buff);
-    //Serial.println(*data_dest);
-    return pointer; 
-}
-
-
-void storage_clean_data(int address) {
-  if (address != 0) EEPROM.write(address, 0);
-  EEPROM.commit();
-}
-
-
-bool flash_save_data(String *data_source, const char *path_name = Telemetry_FILE) {
-    Flash_file = LittleFS.open(path_name, "a");
-    if (!Flash_file) {
-        Serial.println("Unable To Open '" + String(path_name) + "' for Appending");
-        return false;
-    }
-    else if (Flash_file.size() >= MAX_File_Zize) {
-        Serial.println("File is already BIG!");
-        return false;
-    }
-    else {
-        Serial.println("Appending data to file '" + String(path_name) + "'");
-        Flash_file.println(*data_source);
-        Flash_file.close();
-        return true;
-    }
-}
-
-bool flash_get_data(String *data_dest, bool from_begin = true, const char *path_name = Telemetry_FILE) {
-    if (from_begin) {
-        Flash_file = LittleFS.open(path_name, "r");
-    }
-    if (!Flash_file) {
-        Serial.println("File '" + String(path_name) + "' not found");
-        return false;
-    }
-    else {
-        Serial.print("Getting data from file '" + String(path_name) + "'");
-        *data_dest = Flash_file.readStringUntil('\n');
-        //Serial.println("Data:  '" + *data_dest);
-        if(Flash_file.position() == Flash_file.size() ) {
-            Flash_file.close();
-            LittleFS.remove(path_name);
-        }
-        return true;
-    }
-
-}    
-
-
 void storage_reset() {
-  Serial.println("Reseting Config");
+  if (config.DEBUG) Serial.println("Reseting Config");
   EEPROM.write(0, 'R');
   EEPROM.write(1, 'S');
   EEPROM.write(2, 'T');
@@ -277,13 +187,11 @@ void storage_reset() {
 }
 
 void storage_setup() {
-    bool CFG_saved = false;
-    EEPROM.begin(EEPROMZize);     // define an EEPROM space of 2048 Bytes to store data
-    LittleFS.begin();               // Start the SPI Flash Files System
-    //storage_reset();            // Hack to reset storage during boot
+    EEPROM.begin(EEPROMZize);         // define an EEPROM space of 2048 Bytes to store data
+    //storage_reset();                // Hack to reset storage during boot
     config_defaults();
-    CFG_saved = storage_read();   //When a configuration exists, it uses stored values
-    if (!CFG_saved) {             // If NOT, it Set DEFAULT VALUES to "config" struct
+    Load_Default = storage_read();    //When a configuration exists, it uses stored values
+    if (Load_Default) {               // If NOT, it load DEFAULT VALUES to "config" struct
         config_defaults();
         storage_write();
     }

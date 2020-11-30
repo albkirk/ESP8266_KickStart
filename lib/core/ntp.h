@@ -21,7 +21,7 @@ static const String WeekDays[] = {"Weekends", "SUN", "MON", "TUE", "WED", "THU",
 volatile unsigned long UTCTimeStamp = 0;      // GLOBAL TIME var ( Will be retrieved via NTP protocol)
 volatile unsigned long UnixTimeStamp = 0;     // GLOBAL TIME var ( Will be devivated from UTCTimeStamp for local time zone)
 unsigned long RefMillis = 0;                  // Millis val for reference
-boolean NTP_Sync = false;                     // NTP is synched?
+bool NTP_Sync = false;                        // Is NTP synched?
 unsigned int NTP_Retry = 120;                 // Timer to retry the NTP connection
 unsigned long NTP_LastTime = 0;               // Last NTP connection attempt time stamp
 int NTP_errors = 0;                           // NTP errors Counter
@@ -117,23 +117,26 @@ void getNTPtime() {
 
     if (WIFI_state != WL_CONNECTED) telnet_println( "NTP ERROR! ==> WiFi NOT Connected!" );
     else {
-        configTime(0, 0, config.NTPServerName);
+        configTime("TZ_Etc_UTC", config.NTPServerName, config.NTPServerName, config.NTPServerName);
         unsigned long start_sync = millis();
         loop_timeOut = false;
         while ( !NTP_Sync && !loop_timeOut) {
             NTPTime = time(nullptr);
             RefMillis = millis();                 // Exact moment that NTP data was retrived
             if (millis() - start_sync > 1000) loop_timeOut = true;
-            if (NTPTime > 31536000) NTP_Sync = true;
+            if (NTPTime > 31536000UL) NTP_Sync = true;
             yield();
         }
-        if (NTP_Sync) UTCTimeStamp = NTPTime;
+        if (NTP_Sync) { 
+            UTCTimeStamp = NTPTime;
+            ntpNOW = millis();                  // To make sure that it 1st value is valid
+        }
     }
     if (ESPWakeUpReason() == "Deep-Sleep Wake" && loop_timeOut) {
         UTCTimeStamp = rtcData.lastUTCTime + config.SLEEPTime * 60 + 1;   // + 1 is an empirical number to adjust the time error.
         RefMillis = 0;
     }
-    if (UTCTimeStamp > 31536000) {
+    if (UTCTimeStamp > 31536000UL) {
                 //const unsigned long seventyYears = 2208988800UL;
                 //UTCTimeStamp = secsSince1900 - seventyYears;      // store "Coordinated Universal Time" (UTC) time stamp
                 UTCTimeStamp = UTCTimeStamp - RefMillis/1000;     // store UTC time stamp since millis() = 0 ... aka @ Boot time!
@@ -147,7 +150,7 @@ void getNTPtime() {
 
 unsigned long curUTCTime() {
     if (ntpNOW < RefMillis) {                       // If true, it would mean the millis() counter had looped. 
-        UTCTimeStamp = UTCTimeStamp + 4294967295;
+        UTCTimeStamp = UTCTimeStamp + 4294967295UL;
         NTP_Sync = false;
     }
     ntpNOW = millis();
@@ -158,7 +161,7 @@ unsigned long curUTCTime() {
 
 unsigned long curUnixTime() {
     if (ntpNOW < RefMillis) {                       // If true, it would mean the millis() counter had looped. 
-        UTCTimeStamp = UTCTimeStamp + 4294967295;
+        UTCTimeStamp = UTCTimeStamp + 4294967295UL;
         UnixTimeStamp = adjustTimeZone(UTCTimeStamp, config.TimeZone, config.isDayLightSaving);
         RefMillis = 0;
         NTP_Sync = false;
@@ -192,7 +195,7 @@ void ntp_loop () {
   if (!NTP_Sync) {
       if ( millis() - NTP_LastTime > (NTP_Retry * 1000)) {
           NTP_errors ++;
-          Serial.println( "in loop function NTP NOT sync! #: " + String(NTP_errors));
+          if (config.DEBUG) Serial.println( "in loop function NTP NOT sync! #: " + String(NTP_errors));
           NTP_LastTime = millis();
           getNTPtime();
         }

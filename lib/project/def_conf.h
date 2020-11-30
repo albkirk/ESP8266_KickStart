@@ -1,7 +1,7 @@
 // HARWARE & SOFTWARE Version
 #define BRANDName "AlBros_Team"                         // Hardware brand name
 #define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "12.02"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define SWVer "12.11"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
 
 // Power Source & Battery Level
 bool BattPowered = true;                                // Is the device battery powered?
@@ -9,7 +9,7 @@ bool BattPowered = true;                                // Is the device battery
 
 // GPIO to Function Assignment
 #define Using_ADC false                                 // will this device use the ADC? (if not it will measure the internal voltage)
-#define LED_esp 2                                       // ESP Led is connected to GPIO 2. -1 means NOT used!
+#define LED_ESP 2                                       // ESP Led is connected to GPIO 2. -1 means NOT used!
 #define DHTTYPE 2                                       // use 1 for "DHT11", 2 for "DHT22", or 3 for "AM2320" to select the DHT Model
 #define DHTPIN -1                                       // GPIO connected to DHT Data PIN. -1 means NO DHT used!
 #define SDAPIN -1                                       // GPIO connected to (AM) I2C SDA PIN. -1 means NO SDA used!
@@ -27,12 +27,12 @@ void config_defaults() {
     config.SLEEPTime = 0;                                 // 0-255 minutes (Byte range)
     config.DEEPSLEEP = false;                             // 0 - Disabled, 1 - Enabled
     config.LED = true;                                    // 0 - OFF, 1 - ON
-    config.TELNET = true;                                 // 0 - Disabled, 1 - Enabled
+    config.TELNET = false;                                // 0 - Disabled, 1 - Enabled
     config.OTA = true;                                    // 0 - Disabled, 1 - Enabled
     config.WEB = false;                                   // 0 - Disabled, 1 - Enabled
     config.Remote_Allow = true;                           // 0 - Not Allow, 1 - Allow remote operation
     config.STAMode = true;                                // 0 - AP or AP+STA Mode, 1 - Station only Mode
-    config.APMode = true;                                 // 0 - AP Mode Disabled, 1 - AP Mode Enabled
+    config.APMode = false;                                // 0 - AP Mode Disabled, 1 - AP Mode Enabled
     strcpy(config.SSID, "WiFiCasaN");                     // Wireless LAN SSID (STA mode)
     strcpy(config.WiFiKey, "12345678");                   // Wireless LAN Key (STA mode)
     config.DHCP = true;                                   // 0 - Static IP, 1 - DHCP
@@ -55,9 +55,18 @@ void config_defaults() {
     strcpy(config.UPDATE_Password, "1q2w3e4r");           // UPDATE Server password
     strcpy(config.WEB_User, "admin");                     // WEB Server username
     strcpy(config.WEB_Password, "admin");                 // WEB Server password
-    config.SWITCH_Default = false;                        // 0 - OFF, 1 - ON - Default SWITCH Status 
     config.Temp_Corr = 0.0;                               // Sensor Temperature Correction Factor, typically due to electronic self heat.
     config.LDO_Corr = 0.6;                                // Battery Voltage [volt] corrective Factor due to LDO/Diode voltage drop
+    config.HW_Module = true;                              // Is HW module plugged (ex.: GPS hardware)used / connected?
+    config.HASSIO_CFG = false;                            // Is HASSIO configured? If not, it should perform the discovery.
+    config.DEBUG = true;                                  // 0 - No serial msgs, 1 - Debug msg sent to serial interface
+    config.SW_Upgraded = false;                           // Is SW Upgrade completed? If not, clean the house and Update status.
+    config.SWITCH_Default = false;                        // 0 - OFF, 1 - ON - Default SWITCH Status 
+    config.UPPER_LEVEL = 70;                              // level where blinds should stay when pressing double UP
+    config.LOWER_LEVEL = 10;                              // level where blinds should stay when pressing double DN
+    config.MIN_TRAVEL = 0;                                // Time reference for fully DN position
+    config.MAX_TRAVEL = 17000;                            // Time required to go from fully DN to fully UP
+    config.Voltage_Multiplier = 326341.66;                // Unit: us/V
+    config.Current_Multiplier = 21182.61;                 // Unit: us/A
+    config.Power_Multiplier = 792008.54;                  // Unit: us/W
 }
-
-

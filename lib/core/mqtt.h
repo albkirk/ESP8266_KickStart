@@ -37,10 +37,17 @@ uint16_t MQTT_Retry = 125;                          // Timer to retry the MQTT c
 uint16_t MQTT_errors = 0;                           // MQTT errors Counter
 uint32_t MQTT_LastTime = 0;                         // Last MQTT connection attempt time stamp
 static String mqtt_pathtele = "";                   // Topic path for publish information
-static String mqtt_pathconf = "";                   // Topic path for subcribe to commands
+static String mqtt_pathcomd = "";                   // Topic path for receiving commands
+static String mqtt_pathconf = "";                   // Topic path for Backup/Restore data (JSON string)
+static String mqtt_pathsubs = "";                   // Topic path for subscription
 
+// Backup/Restore
+bool bckup_rstr_flag = true;                        // Enable this flag if there's data to backup restore
+unsigned long rstr_syn_timeout= 200UL;              // time out limit to wait for the restore/syncMe MQTT packets 
+DynamicJsonDocument config_doc(256);                // JSON entity for configuration Backup/Restore (via MQTT)
+char config_jsonString[256];                        // Correspondent string variable
 
-#if MQTT_Secure
+#if MQTTs
     // Initialize MQTT Client
     PubSubClient MQTTclient(WiFiSec.getWiFiClient());
 #else
@@ -56,12 +63,15 @@ String  MQTT_state_string(int mqttstate = MQTT_state){
 }
 
 
-void mqtt_publish(String pubpath, String pubtopic, String pubvalue, boolean toretain = false) {
+bool mqtt_publish(String pubpath, String pubtopic, String pubvalue, boolean toretain = false) {
     String topic = "";
     topic += pubpath; topic += pubtopic;
     // Send payload
     if (MQTTclient.state() == MQTT_CONNECTED) {
-        if (MQTTclient.publish(topic.c_str(), pubvalue.c_str(), toretain) == 1) telnet_println("MQTT published:  " + String(topic.c_str()) + " = " + String(pubvalue.c_str()));
+        if (MQTTclient.publish(topic.c_str(), pubvalue.c_str(), toretain) == 1) {
+            telnet_println("MQTT published:  " + String(topic.c_str()) + " = " + String(pubvalue.c_str()));
+            return true;
+        }
         else {
             //flash_LED(2);
             telnet_println("");
@@ -70,23 +80,11 @@ void mqtt_publish(String pubpath, String pubtopic, String pubvalue, boolean tore
         }
         yield();                                // Required, or else it won't publish messages in burst
     }
-    else {
-        MQTT_state = MQTTclient.state();
-        if (pubtopic == "Telemetry") {
-                flash_save_data(&pubvalue);
-        }
-    }
+    MQTT_state = MQTTclient.state();
+    return false;
 }
 
 
-void mqtt_dump_data(String subpath, String subtopic) {
-    static String dumpvalue;                                       // mem space to handle msg payload
-    bool first_time = true;
-    while (flash_get_data(&dumpvalue, first_time)) {
-        mqtt_publish(subpath, subtopic, dumpvalue);
-        first_time = false;
-    } 
-}
 void mqtt_subscribe(String subpath, String subtopic) {
     String topic = "";
     topic += subpath; topic += subtopic;
@@ -116,6 +114,7 @@ void mqtt_connect(String Will_Topic = (mqtt_pathtele + "Status"), String Will_Ms
         if (MQTTclient.connect(ChipID.c_str(), config.MQTT_User, config.MQTT_Password, Will_Topic.c_str(), 0, false, Will_Msg.c_str(), true)) {
             MQTT_state = MQTT_CONNECTED;
             telnet_println( "[DONE]" );
+            mqtt_subscribe(mqtt_pathcomd, "+");
         }
         else {
             MQTT_state = MQTTclient.state();
@@ -126,14 +125,39 @@ void mqtt_connect(String Will_Topic = (mqtt_pathtele + "Status"), String Will_Ms
 
 
 void mqtt_disconnect() {
+    mqtt_unsubscribe(mqtt_pathcomd, "+");
     MQTTclient.disconnect();
     MQTT_state = MQTT_DISCONNECTED;
     telnet_println("Disconnected from MQTT Broker.");
 }
 
+
 void mqtt_restart() {
     mqtt_publish(mqtt_pathtele, "Status", "Restarting");
-    mqtt_unsubscribe(mqtt_pathconf, "+");
     mqtt_disconnect();
     ESPRestart();
+}
+
+
+void mqtt_reset() {
+    mqtt_publish(mqtt_pathtele, "Status", "Reseting");
+    mqtt_disconnect();
+    storage_reset();
+    RTC_reset();
+    ESPRestart();
+}
+
+
+void mqtt_restore() {
+    unsigned long start_time = millis();
+    mqtt_pathsubs = mqtt_pathconf;
+    mqtt_subscribe(mqtt_pathconf, "BckpRstr");
+    while (bckup_rstr_flag && millis() - start_time < rstr_syn_timeout )
+    {
+        MQTTclient.loop();
+    }
+    
+    mqtt_unsubscribe(mqtt_pathconf, "BckpRstr");
+    mqtt_pathsubs = mqtt_pathcomd;
+
 }

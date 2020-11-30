@@ -1,37 +1,5 @@
-#include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
-#include <custohttpupdate.h>
 
-
-bool HTTPUpdate(bool sketch=true){
-    String URLString = "http://" + String(config.UPDATE_Server) + ":" + String(config.UPDATE_Port) + "/Firmware/" + BRANDName + "/" + MODELName;
-    const char * updateUrl = URLString.c_str();
-    String msg;
-    t_httpUpdate_return ret;
-
-    ESPhttpUpdate.rebootOnUpdate(false);
-    if(sketch){
-      Serial.println("Update URL: " + String(updateUrl)); // + "\tUpdate Pass: " + config.UPDATE_Password);
-      ret=ESPhttpUpdate.updateup(updateUrl, String(SWVer), config.UPDATE_User, config.UPDATE_Password);
-    }
-    else {
-      ret=ESPhttpUpdate.updateSpiffsup(updateUrl, String(SWVer), config.UPDATE_User, config.UPDATE_Password);
-    };
-    //Serial.println("Ret Code: " + String(ret));
-    if(ret==HTTP_UPDATE_OK){
-        telnet_println("HTTP Update SUCCEEDED");
-        return true;
-    }
-    else {
-        if(ret==HTTP_UPDATE_NO_UPDATES){
-            telnet_println("NO HTTP Update required");
-        };
-        if(ret==HTTP_UPDATE_FAILED){
-            telnet_println("HTTP Update Failed");
-        };
-    };
-    return false;
-}
 
   void ota_setup() {
     if(config.OTA) {
@@ -83,11 +51,6 @@ bool HTTPUpdate(bool sketch=true){
     }
     else yield();
   }
-
-void ota_http_upg() {
-    if (WIFI_state != WL_CONNECTED) telnet_println( "UPG ERROR! ==> WiFi NOT Connected!" );
-    else if(HTTPUpdate(true)) mqtt_restart();
-}
 
   // OTA commands to run on loop function.
   void ota_loop() {

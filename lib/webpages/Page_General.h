@@ -19,6 +19,26 @@ const char PAGE_AdminGeneralSettings[] PROGMEM =  R"=====(
 	<td align="right">Password:</td>
 	<td><input type="text" id="webpassword" name="webpassword" value=""></td>
 </tr>
+<tr><td>Location:</td><td>
+<select  id="locat" name="locat">
+  <option value="Casa">Casa</option>
+  <option value="Cozinha">Cozinha</option>
+  <option value="Escritorio">Escritório</option>
+  <option value="Garagem">Garagem</option>
+  <option value="Hall">Hall</option>
+  <option value="Jardim">Jardim</option>
+  <option value="Quarto">Quarto</option>
+  <option value="SalaEstar">Sala Estar</option>
+  <option value="SalaJantar">Sala Jantar</option>
+  <option value="Sotao">Sótão</option>
+  <option value="SotaoTer">Sótão Terraço</option>
+  <option value="Suite">Suite</option>
+  <option value="SuiteTer">Suite Terraço</option>
+  <option value="Terraco">Terraço</option>
+  <option value="WC">WC</option>
+  <option value="WCSuite">WC Suite</option>
+</select>
+</td></tr>
 <tr><td>Sleep Time:</td><td>
 <select  id="sltm" name="sltm">
   <option value="1">1 Min</option>
@@ -72,13 +92,18 @@ function load(e,t,n){if("js"==t){var a=document.createElement("script");a.src=e,
 // Functions for this Page
 void send_general_html()
 {
-
+	String Last_config = String(config.Location);
 	if (MyWebServer.args() > 0 )  // Save Settings
 	{
 		for ( uint8_t i = 0; i < MyWebServer.args(); i++ ) {
 			if (MyWebServer.argName(i) == "webusername") strcpy(config.WEB_User, urldecode(MyWebServer.arg(i)).c_str());
 			if (MyWebServer.argName(i) == "webpassword" && urldecode(MyWebServer.arg(i)) != "") strcpy(config.WEB_Password, urldecode(MyWebServer.arg(i)).c_str());
+			if (MyWebServer.argName(i) == "locat") strcpy(config.Location, urldecode(MyWebServer.arg(i)).c_str());
 			if (MyWebServer.argName(i) == "sltm") config.SLEEPTime =  MyWebServer.arg(i).toInt(); 
+		}
+		if(Last_config != String(config.Location)) {
+			config_backup();
+			hassio_attributes();
 		}
 		storage_write();
 		firstStart = true;
@@ -101,6 +126,7 @@ void send_general_configuration_values_html()
 	String values ="";
 	values += "webusername|" +  String(config.WEB_User) +  "|input\n";
 	//values += "webpassword|" +  String(config.WEB_Password) +  "|input\n";  	// KEEP IT COMMENTED TO NOT SHOW THE WiFi KEY!!!
+	values += "locat|" + (String) config.Location + "|input\n";
 	values += "sltm|" + (String) config.SLEEPTime + "|input\n";
  	values += "sw_Version|" + String(SWVer) +  "|div\n";
  	values += "x_mac|" + GetMacAddress() +  "|div\n";

@@ -11,105 +11,105 @@
  */
 
 // Libraries to INCLUDE
-#include <ESP8266WiFi.h>
-
-#include <secure_credentials.h>
 #include <storage.h>
 #include <hw8266.h>
 #include <mywifi.h>
-#include <sniffer.h>
+#include <httpupd.h>
 #include <telnet.h>
 #include <ntp.h>
 #include <mqtt.h>
+#include <hassio.h>
 #include <ota.h>
-#include <web.h>
 #include <global.h>
 #include <project.h>
-#include <mqttactions.h>                                // Added later because functions from project are called here.
+#include <web.h>
+#include <actions.h>                                    // Added later because functions from project are called here.
 
 
 void setup() {
 // Starting with WiFi interface shutdown in order to save energy
-    WiFi.mode(WIFI_SHUTDOWN);
+    wifi_disconnect();
 
   // Start Serial interface
-      Serial.begin(74880);                  // This odd baud speed will shows ESP8266 boot diagnostics too.
-      //Serial.begin(115200);               // For faster communication use 115200
+    //if (config.DEBUG) {
+            Serial.begin(74880);                  // This odd baud speed will shows ESP8266 boot diagnostics too.
+            //Serial.begin(115200);               // For faster communication use 115200
 
-      Serial.println("");
-      Serial.println("Hello World!");
-      Serial.println("My ID is " + ChipID + " and I'm running version " + SWVer);
-      Serial.println("Reset reason: " + ESPWakeUpReason());
+            Serial.println("");
+            Serial.println("Hello World!");
+            Serial.println("My ID is " + ChipID + " and I'm running version " + SWVer);
+            Serial.println("Reset reason: " + ESPWakeUpReason());
+    //}
 
   // Start Storage service and read stored configuration
-      storage_setup();
+    storage_setup();
 
   // Start ESP specific features, such as: Serial Number, ESP_LED, internal ADC, ...
-      hw_setup();
+    hw_setup();
 
   //  Project HW initialization, such as: GPIO config, Sensors, Actuators, ...  
-      project_hw();
+    project_hw();
 
   // Start WiFi service (Station or/and as Access Point)
-      wifi_setup();
+    wifi_setup();
     
+  // Check for HTTP Upgrade
+    http_upg();               // Note: this service kills all running UDP and TCP services
+
   // Start TELNET service
-      if (config.TELNET) telnet_setup();
+    if (config.TELNET) telnet_setup();
 
   // Start NTP service
-      ntp_setup();
+    ntp_setup();
 
  // Start MQTT service
-      mqtt_setup();
+    mqtt_setup();
 
   // Start OTA service
-      if (config.OTA) ota_setup();
-      ota_http_upg();
+    if (config.OTA) ota_setup();
 
   // Start ESP Web Service
-      if (config.WEB) web_setup();
+    if (config.WEB) web_setup();
 
   // **** Project SETUP Sketch code here...
-      project_setup();
-
+    project_setup();
 
   // Last bit of code before leave setup
-      ONTime_Offset = millis() + 100;       //  100ms after finishing the SETUP function it starts the "ONTime" countdown.
+    ONTime_Offset = millis() + 100UL;     //  100ms after finishing the SETUP function it starts the "ONTime" countdown.
                                             //  it should be good enough to receive the MQTT "ExtendONTime" msg
-
 } // end of setup()
 
 
 void loop() {
   // allow background process to run.
-      yield();
+    yield();
 
   // Hardware handling, namely the ESP_LED
-      hw_loop();
+    hw_loop();
 
   // WiFi handling
-      wifi_loop();
+    wifi_loop();
 
   // TELNET handling
-      if (config.TELNET) telnet_loop();
+    if (config.TELNET) telnet_loop();
 
   // NTP handling
-      ntp_loop();
+    ntp_loop();
 
   // MQTT handling
-      mqtt_loop();
+    mqtt_loop();
 
   // OTA request handling
-      if (config.OTA) ota_loop();
+    if (config.OTA) ota_loop();
 
   // ESP Web Server requests handling
-      if (config.WEB) web_loop();
+    if (config.WEB) web_loop();
 
   // **** Project LOOP Sketch code here ...
-      project_loop();
+    project_loop();
 
   // Global loops handling
-      deepsleep_loop();
-      if (BattPowered && ((millis() - 2500) % 60000 < 5)) Batt_OK_check();    // If Batt LOW, it will DeepSleep forever!
+    deepsleep_loop();
+    if (BattPowered && ((millis() - 3500) % 60000 < 5)) Batt_OK_check();    // If Batt LOW, it will DeepSleep forever!
 
 }  // end of loop()
