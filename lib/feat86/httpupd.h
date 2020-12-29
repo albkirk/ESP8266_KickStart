@@ -32,7 +32,7 @@ bool HTTPUpdate(bool sketch=true){
 }
 
 void http_upg() {
-    if (WIFI_state != WL_CONNECTED) if (config.DEBUG) Serial.println( "UPG ERROR! ==> WiFi NOT Connected!" );
+    if (WIFI_state != WL_CONNECTED) { if (config.DEBUG) Serial.println( "UPG ERROR! ==> WiFi NOT Connected!" );}
     else if(HTTPUpdate(true)) {
         config.SW_Upgraded = true;
         storage_write();

@@ -1,10 +1,9 @@
 //Variables used by telnet
-#define BUFFER_PRINT 150						    // length of buffer
-#define MAX_TIME_INACTIVE 30000				        // Maximun time for inactivity (miliseconds)
+#define BUFFER_PRINT 150							// length of buffer
+#define MAX_TIME_INACTIVE 300000					// Maximun time for inactivity (miliseconds)
 
-unsigned long TELNET_Timer = millis();	            // To measure Telnet idle time
+unsigned long TELNET_Timer = millis();				// To measure Telnet idle time
 String bufferPrint = "";                            // buffer for printable text
-String bufferRead  = "";                            // buffer to get readable text
 
 // declare telnet server and client (do NOT put in setup())
 WiFiServer telnetServer(23);
@@ -41,23 +40,24 @@ void telnet_println(String msg) {
 }
 
 
+void telnet_stop() {
+    // Stop Client
+    if (telnetClient && telnetClient.connected()) {
+		if (config.DEBUG) Serial.println("Telnet Service STOP.");
+        telnetClient.stop();
+    }
+    // Stop server
+    telnetServer.stop();
+}
+
+
 void telnet_setup() {
     if (config.TELNET){
 	   //start Telnet service
 	   telnetServer.begin();
 	   telnetServer.setNoDelay(true);
-       telnetServer.flush();     // clear input buffer, else you get strange characters
 	   if (config.DEBUG) Serial.println("Telnet Service READY.");
 	   bufferPrint.reserve(BUFFER_PRINT);
     }
-    else telnetServer.close();
-}
-
-void telnet_stop() {
-    // Stop Client
-    if (telnetClient && telnetClient.connected()) {
-        telnetClient.stop();
-    }
-    // Stop server
-    telnetServer.stop();
+    else telnet_stop();
 }

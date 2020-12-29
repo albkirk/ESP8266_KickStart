@@ -12,44 +12,44 @@ const char PAGE_AdminGeneralSettings[] PROGMEM =  R"=====(
 <strong>Device Configuration</strong><br>
 <table border="0"  cellspacing="0" cellpadding="3" >
 <tr>
-	<td align="right">Username:</td>
-	<td><input type="text" id="webusername" name="webusername" value=""></td>
+    <td align="right">Username:</td>
+    <td><input type="text" id="webusername" name="webusername" value=""></td>
 </tr>
 <tr>
-	<td align="right">Password:</td>
-	<td><input type="text" id="webpassword" name="webpassword" value=""></td>
+    <td align="right">Password:</td>
+    <td><input type="text" id="webpassword" name="webpassword" value=""></td>
 </tr>
-<tr><td>Location:</td><td>
+<tr><td align="right">Location:</td><td>
 <select  id="locat" name="locat">
-  <option value="Casa">Casa</option>
-  <option value="Cozinha">Cozinha</option>
-  <option value="Escritorio">Escritório</option>
-  <option value="Garagem">Garagem</option>
-  <option value="Hall">Hall</option>
-  <option value="Jardim">Jardim</option>
-  <option value="Quarto">Quarto</option>
-  <option value="SalaEstar">Sala Estar</option>
-  <option value="SalaJantar">Sala Jantar</option>
-  <option value="Sotao">Sótão</option>
-  <option value="SotaoTer">Sótão Terraço</option>
-  <option value="Suite">Suite</option>
-  <option value="SuiteTer">Suite Terraço</option>
-  <option value="Terraco">Terraço</option>
-  <option value="WC">WC</option>
-  <option value="WCSuite">WC Suite</option>
+    <option value="Casa">Casa</option>
+    <option value="Cozinha">Cozinha</option>
+    <option value="Escritorio">Escritório</option>
+    <option value="Garagem">Garagem</option>
+    <option value="Hall">Hall</option>
+    <option value="Jardim">Jardim</option>
+    <option value="Quarto">Quarto</option>
+    <option value="SalaEstar">Sala Estar</option>
+    <option value="SalaJantar">Sala Jantar</option>
+    <option value="Sotao">Sótão</option>
+    <option value="SotaoTer">Sótão Terraço</option>
+    <option value="Suite">Suite</option>
+    <option value="SuiteTer">Suite Terraço</option>
+    <option value="Terraco">Terraço</option>
+    <option value="WC">WC</option>
+    <option value="WCSuite">WC Suite</option>
 </select>
 </td></tr>
-<tr><td>Sleep Time:</td><td>
+<tr><td align="right">Sleep Time:</td><td>
 <select  id="sltm" name="sltm">
-  <option value="1">1 Min</option>
-  <option value="5">5 Min</option>
-  <option value="10">10 Min</option>
-  <option value="15">15 Min</option>
-  <option value="30">30 Min</option>
-  <option value="61">1 Hour</option>
-  <option value="121">2 Hour</option>
-  <option value="181">3 Hour</option>
-  <option value="241">4 Hour</option>
+    <option value="1">1 Min</option>
+    <option value="5">5 Min</option>
+    <option value="10">10 Min</option>
+    <option value="15">15 Min</option>
+    <option value="30">30 Min</option>
+    <option value="61">1 Hour</option>
+    <option value="121">2 Hour</option>
+    <option value="181">3 Hour</option>
+    <option value="241">4 Hour</option>
 </select>
 </td></tr>
 </table>
@@ -73,13 +73,13 @@ const char PAGE_AdminGeneralSettings[] PROGMEM =  R"=====(
 
 window.onload = function ()
 {
-	load("style.css","css", function()
-	{
-		load("microajax.js","js", function()
-		{
-				setValues("/admin/generalvalues");
-		});
-	});
+    load("style.css","css", function()
+    {
+        load("microajax.js","js", function()
+        {
+            setValues("/admin/generalvalues");
+        });
+    });
 }
 function load(e,t,n){if("js"==t){var a=document.createElement("script");a.src=e,a.type="text/javascript",a.async=!1,a.onload=function(){n()},document.getElementsByTagName("head")[0].appendChild(a)}else if("css"==t){var a=document.createElement("link");a.href=e,a.rel="stylesheet",a.type="text/css",a.async=!1,a.onload=function(){n()},document.getElementsByTagName("head")[0].appendChild(a)}}
 
@@ -92,46 +92,46 @@ function load(e,t,n){if("js"==t){var a=document.createElement("script");a.src=e,
 // Functions for this Page
 void send_general_html()
 {
-	String Last_config = String(config.Location);
-	if (MyWebServer.args() > 0 )  // Save Settings
-	{
-		for ( uint8_t i = 0; i < MyWebServer.args(); i++ ) {
-			if (MyWebServer.argName(i) == "webusername") strcpy(config.WEB_User, urldecode(MyWebServer.arg(i)).c_str());
-			if (MyWebServer.argName(i) == "webpassword" && urldecode(MyWebServer.arg(i)) != "") strcpy(config.WEB_Password, urldecode(MyWebServer.arg(i)).c_str());
-			if (MyWebServer.argName(i) == "locat") strcpy(config.Location, urldecode(MyWebServer.arg(i)).c_str());
-			if (MyWebServer.argName(i) == "sltm") config.SLEEPTime =  MyWebServer.arg(i).toInt(); 
-		}
-		if(Last_config != String(config.Location)) {
-			config_backup();
-			hassio_attributes();
-		}
-		storage_write();
-		firstStart = true;
-	}
-	if (!MyWebServer.authenticate(config.WEB_User, config.WEB_Password))  {
-		MyWebServer.requestAuthentication();
-	}
-	else{
-		MyWebServer.send ( 200, "text/html", PAGE_AdminGeneralSettings );
-	}
-	MyWebServer.send ( 400, "text/html", "Authentication failed" );
-	Serial.println(__FUNCTION__);
+    String Last_config = String(config.Location);
+    if (MyWebServer.args() > 0 )  // Save Settings
+    {
+        for ( uint8_t i = 0; i < MyWebServer.args(); i++ ) {
+            if (MyWebServer.argName(i) == "webusername") strcpy(config.WEB_User, urldecode(MyWebServer.arg(i)).c_str());
+            if (MyWebServer.argName(i) == "webpassword" && urldecode(MyWebServer.arg(i)) != "") strcpy(config.WEB_Password, urldecode(MyWebServer.arg(i)).c_str());
+            if (MyWebServer.argName(i) == "locat") strcpy(config.Location, urldecode(MyWebServer.arg(i)).c_str());
+            if (MyWebServer.argName(i) == "sltm") config.SLEEPTime =  MyWebServer.arg(i).toInt(); 
+        }
+        if(Last_config != String(config.Location)) {
+            config_backup();
+            hassio_attributes();
+        }
+        storage_write();
+        firstStart = true;
+    }
+    if (!MyWebServer.authenticate(config.WEB_User, config.WEB_Password))  {
+        MyWebServer.requestAuthentication();
+    }
+    else{
+        MyWebServer.send ( 200, "text/html", PAGE_AdminGeneralSettings );
+    }
+    MyWebServer.send ( 400, "text/html", "Authentication failed" );
+    if (config.DEBUG) Serial.println(__FUNCTION__);
 
 
 }
 
 void send_general_configuration_values_html()
 {
-	curDateTime();
-	String values ="";
-	values += "webusername|" +  String(config.WEB_User) +  "|input\n";
-	//values += "webpassword|" +  String(config.WEB_Password) +  "|input\n";  	// KEEP IT COMMENTED TO NOT SHOW THE WiFi KEY!!!
-	values += "locat|" + (String) config.Location + "|input\n";
-	values += "sltm|" + (String) config.SLEEPTime + "|input\n";
- 	values += "sw_Version|" + String(SWVer) +  "|div\n";
- 	values += "x_mac|" + GetMacAddress() +  "|div\n";
+    curDateTime();
+    String values ="";
+    values += "webusername|" +  String(config.WEB_User) +  "|input\n";
+    //values += "webpassword|" +  String(config.WEB_Password) +  "|input\n";      // KEEP IT COMMENTED TO NOT SHOW THE WiFi KEY!!!
+    values += "locat|" + (String) config.Location + "|input\n";
+    values += "sltm|" + (String) config.SLEEPTime + "|input\n";
+    values += "sw_Version|" + String(SWVer) +  "|div\n";
+    values += "x_mac|" + GetMacAddress() +  "|div\n";
     values += "ap_ssid|" + ESP_SSID +  "|div\n";
     values += "x_ntp|" + (String) WeekDays[DateTime.wday] + ", " + (String) DateTime.year + "/" + (String) DateTime.month + "/" + (String) DateTime.day + "   " + (String) DateTime.hour + ":" + (String) DateTime.minute + ":" + (String)  DateTime.second + "|div\n";
-	MyWebServer.send ( 200, "text/plain", values);
-	Serial.println(__FUNCTION__);
+    MyWebServer.send ( 200, "text/plain", values);
+    if (config.DEBUG) Serial.println(__FUNCTION__);
 }

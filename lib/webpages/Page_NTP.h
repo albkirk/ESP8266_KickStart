@@ -87,7 +87,7 @@ void send_NTP_configuration_html()
       if (MyWebServer.argName(i) == "dst") config.isDayLightSaving = true; 
     }
     storage_write();
-    storage_print();
+    if (config.DEBUG) storage_print();
     firstStart = true;
   }
   MyWebServer.send ( 200, "text/html", PAGE_NTPConfiguration ); 

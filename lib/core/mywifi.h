@@ -32,18 +32,20 @@ String WIFI_state_string(int wifistate = WIFI_state) {
     return WIFI_state_Name[WIFI_state];
 }
 
-// void wifi_disconnect() {}                    // defined on 8266_HW.h and esp32.h file
+// void wifi_disconnect() {}                                // defined on 8266_HW.h and esp32.h file
 
 void wifi_connect() {
-  //  Connect to WiFi acess point or start as Acess point
-//  if ( WiFi.status() != WL_CONNECTED ) {
+    //  Connect to WiFi acess point or start as Acess point
+    if ( WiFi.status() != WL_CONNECTED ) {
         if (config.APMode) {
             if (config.STAMode) WiFi.mode(WIFI_AP_STA);     // Setup ESP in AP+Station  mode
             else WiFi.mode(WIFI_AP);                        // Setup ESP in AP only mode
         }
         else {
-            config.STAMode = true;                           // To force having any conectivity
-            WiFi.mode(WIFI_STA);                             // Setup ESP in Station only mode
+            #ifndef Modem
+                config.STAMode = true;                      // To force having any conectivity to the world
+            #endif
+            if (config.STAMode) WiFi.mode(WIFI_STA);        // Setup ESP in Station only mode
         }
 
         if (config.STAMode) {
@@ -79,7 +81,7 @@ void wifi_connect() {
             }
             if ( WIFI_state == WL_CONNECTED ) {
                 if (config.DEBUG) { Serial.print("Connected to WiFi network! " + String(config.SSID) + " IP: "); Serial.println(WiFi.localIP());}
-                //rtcData.LastWiFiChannel = uint(wifi_get_channel);
+
                 //if (!MDNS.begin(host_name)) {             // Start the mDNS responder for "host_name.local" domain
                 //    Serial.println("Error setting up MDNS responder!");
                 //}
@@ -92,8 +94,8 @@ void wifi_connect() {
             //WiFi.softAP(config.SSID);
             if (config.DEBUG) { Serial.print("WiFi in AP mode, with IP: "); Serial.println(WiFi.softAPIP());}
         }
-//  }
-//  else WIFI_state = WL_CONNECTED;
+    }
+    else WIFI_state = WL_CONNECTED;
 }
 
 

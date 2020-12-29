@@ -117,7 +117,7 @@ void getNTPtime() {
 
     if (WIFI_state != WL_CONNECTED) telnet_println( "NTP ERROR! ==> WiFi NOT Connected!" );
     else {
-        configTime("TZ_Etc_UTC", config.NTPServerName, config.NTPServerName, config.NTPServerName);
+        myconfigTime("TZ_Etc_UTC", config.NTPServerName, config.NTPServerName, config.NTPServerName);
         unsigned long start_sync = millis();
         loop_timeOut = false;
         while ( !NTP_Sync && !loop_timeOut) {

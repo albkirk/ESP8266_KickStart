@@ -21,17 +21,19 @@
 #include <hassio.h>
 #include <ota.h>
 #include <global.h>
+#ifdef Modem
+    #include <modem.h>
+#endif
 #include <project.h>
 #include <web.h>
 #include <actions.h>                                    // Added later because functions from project are called here.
 
 
 void setup() {
-// Starting with WiFi interface shutdown in order to save energy
+  // Starting with WiFi interface shutdown in order to save energy
     wifi_disconnect();
 
   // Start Serial interface
-    //if (config.DEBUG) {
             Serial.begin(74880);                  // This odd baud speed will shows ESP8266 boot diagnostics too.
             //Serial.begin(115200);               // For faster communication use 115200
 
@@ -39,7 +41,6 @@ void setup() {
             Serial.println("Hello World!");
             Serial.println("My ID is " + ChipID + " and I'm running version " + SWVer);
             Serial.println("Reset reason: " + ESPWakeUpReason());
-    //}
 
   // Start Storage service and read stored configuration
     storage_setup();
@@ -71,11 +72,16 @@ void setup() {
   // Start ESP Web Service
     if (config.WEB) web_setup();
 
+#ifdef Modem
+  // Start Modem service
+    modem_hw();
+#endif
+
   // **** Project SETUP Sketch code here...
     project_setup();
 
   // Last bit of code before leave setup
-    ONTime_Offset = millis() + 100UL;     //  100ms after finishing the SETUP function it starts the "ONTime" countdown.
+    ONTime_Offset = millis() + 100UL;       //  100ms after finishing the SETUP function it starts the "ONTime" countdown.
                                             //  it should be good enough to receive the MQTT "ExtendONTime" msg
 } // end of setup()
 
@@ -104,6 +110,11 @@ void loop() {
 
   // ESP Web Server requests handling
     if (config.WEB) web_loop();
+
+#ifdef Modem
+  // Modem handling
+      modem_loop();
+#endif
 
   // **** Project LOOP Sketch code here ...
     project_loop();

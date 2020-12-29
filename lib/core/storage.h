@@ -92,6 +92,10 @@ struct __attribute__((__packed__)) strConfig {
   long UPDATE_Port;
   char UPDATE_User[16];
   char UPDATE_Password[32];
+  char SIMCardPIN[5];
+  char APN[128];
+  char MODEM_User[32];
+  char MODEM_Password[32];
   char WEB_User[16];
   char WEB_Password[32];
   float Temp_Corr;
@@ -118,7 +122,6 @@ struct __attribute__((__packed__)) strConfig {
 //  STORAGE functions
 //
 void storage_print() {
-  if (config.DEBUG) {
     Serial.printf("Printing Config [%d bytes]\n", sizeof(config));
     if (sizeof(config) + 16 > Mem_Start_Pos) Serial.println ("WARNING: Memory zones overlapinng!!");
     Serial.printf("Device Name: %s and Location: %s\n", config.DeviceName, config.Location);
@@ -144,7 +147,6 @@ void storage_print() {
     Serial.printf("SWITCH default status: %d\t", config.SWITCH_Default);
     Serial.printf("Temperature Correction: %f\t", config.Temp_Corr);
     Serial.printf("LDO Voltage Correction: %f\n", config.LDO_Corr);
-  }
 }
 
 boolean storage_read() {
@@ -195,5 +197,5 @@ void storage_setup() {
         config_defaults();
         storage_write();
     }
-    storage_print();
+    if (config.DEBUG) storage_print();
 }

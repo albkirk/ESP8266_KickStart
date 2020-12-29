@@ -47,15 +47,7 @@ unsigned long rstr_syn_timeout= 200UL;              // time out limit to wait fo
 DynamicJsonDocument config_doc(256);                // JSON entity for configuration Backup/Restore (via MQTT)
 char config_jsonString[256];                        // Correspondent string variable
 
-#if MQTTs
-    // Initialize MQTT Client
-    PubSubClient MQTTclient(WiFiSec.getWiFiClient());
-#else
-    //WiFi Client initialization
-    WiFiClient wifiClient;                          //  Use this for unsecure connection
-    // Initialize MQTT Client
-    PubSubClient MQTTclient(wifiClient);
-#endif
+PubSubClient MQTTclient;                            // The MQTT Client instance
 
 // MQTT Functions //
 String  MQTT_state_string(int mqttstate = MQTT_state){
@@ -100,9 +92,13 @@ void mqtt_unsubscribe(String subpath, String subtopic) {
     else telnet_println("Error on MQTT unsubscription!");
 }
 
+void mqtt_set_client() {
+        if (config.MQTT_Secure) MQTTclient.setClient(secureclient);
+        else MQTTclient.setClient(unsecuclient);
+}
 
 void mqtt_connect(String Will_Topic = (mqtt_pathtele + "Status"), String Will_Msg = "UShut") {
-    if (WIFI_state != WL_CONNECTED) telnet_println( "MQTT ERROR! ==> WiFi NOT Connected!" );
+    if (WIFI_state != WL_CONNECTED && !Modem_Connected) telnet_println( "MQTT ERROR! ==> NO Internet connection!" );
     else if (config.MQTT_Secure && !NTP_Sync) telnet_println( "MQTT ERROR! ==> NTP Required but NOT Sync!" );
     else {
         telnet_print("Connecting to MQTT Broker ... ");

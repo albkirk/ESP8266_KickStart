@@ -1,5 +1,5 @@
 // Adding function with project's customized MQTT actions
-#include <custommqtt.h>
+#include <customactions.h>
 
 void state_update() {
             //mqtt_publish(mqtt_pathtele, "Boot", ESPWakeUpReason());
@@ -59,6 +59,10 @@ void on_message(const char* topic, byte* payload, unsigned int msg_length) {
     if ( command == "MQTT_Secure") { config.MQTT_Secure = bool(cmd_value.toInt()); storage_write(); }
     if ( command == "MQTT_User") { strcpy(config.MQTT_User, cmd_value.c_str()); storage_write(); }
     if ( command == "MQTT_Password") { strcpy(config.MQTT_Password, cmd_value.c_str()); storage_write(); }   
+    if ( command == "SIMCardPIN") { strcpy(config.SIMCardPIN, cmd_value.c_str()); storage_write(); }
+    if ( command == "APN") { strcpy(config.APN, cmd_value.c_str()); storage_write(); }
+    if ( command == "MODEM_User") { strcpy(config.MODEM_User, cmd_value.c_str()); storage_write(); }
+    if ( command == "MODEM_Password") { strcpy(config.MODEM_Password, cmd_value.c_str()); storage_write(); }   
     if ( command == "Update_Time_Via_NTP_Every") config.Update_Time_Via_NTP_Every = (ulong)abs(atol(cmd_value.c_str()));
     if ( command == "TimeZone") config.TimeZone = (long)cmd_value.toInt();
     if ( command == "isDayLightSaving") config.isDayLightSaving = bool(cmd_value.toInt());
@@ -102,9 +106,11 @@ void on_message(const char* topic, byte* payload, unsigned int msg_length) {
 
     custom_mqtt(command, cmd_value);
 
-    storage_print();
-    //Serial.print("Current Local Date / Time: " + curDateTime());
-    //Serial.printf("\t NTP Sync: %d\n", NTP_Sync);
+    if (config.DEBUG) {
+        storage_print();
+        Serial.print("Current Local Date / Time: " + curDateTime());
+        Serial.printf("\t NTP Sync: %d\n", NTP_Sync);
+    }
 }
 
 
@@ -121,6 +127,7 @@ void mqtt_setup() {
     mqtt_pathconf = String(config.ClientID) + "/" + String(ChipID) + "/" + String(config.DeviceName) + "/config/";
     mqtt_pathsubs = mqtt_pathcomd;
 
+    mqtt_set_client();
     mqtt_connect();
     mqtt_setcallback();
     if (MQTT_state == MQTT_CONNECTED) {
@@ -162,48 +169,34 @@ void mqtt_loop() {
 }
 
 
-void telnet_parse_msg() {
-        char buff[bufferRead.length()];
+void parse_command_msg(String bufferRead) {
         char msg_array[bufferRead.length()+1];
-        strcpy(buff, bufferRead.c_str());
-        if (buff[0] == (char)10) {
-            if (bufferRead.length() == 1) {
-                bufferRead = "";
-                return;
-            }
-            for (size_t i = 0; i < bufferRead.length(); i++) msg_array[i] = buff[i+1];
-            msg_array[bufferRead.length()-1] = 0;
+        strcpy(msg_array, bufferRead.c_str());
+        msg_array[bufferRead.length()] = 0;
+
+        if((msg_array[0]=='A' || msg_array[0]=='a') && (msg_array[1] == 'T' || msg_array[1] == 't')) {
+            if (config.DEBUG) Serial.println(bufferRead);
+            parse_at_command(bufferRead);
         }
         else {
-            strcpy(msg_array, buff);
-            msg_array[bufferRead.length()] = 0;
-        }
-        if((msg_array[0]=='A' || msg_array[0]=='a') && (msg_array[1] == 'T' || msg_array[1] == 't')) {
-            Serial.println("AT command!");
-            String msg = String((char *)msg_array);
-            if (config.DEBUG) Serial.println(msg);
-        }
-        char * equalPosition = strchr(msg_array,'=');
-        //Serial.println(equalPosition);
-        if(equalPosition > 0) {
-            char * pch;
-            pch = strtok (msg_array," ,.-=\"");
-            String command = String((char *)pch);
-            pch = strtok (NULL, " ,.-=\"");
-            String value = String((char *)pch);
-            //Serial.print(command); Serial.print("\t<-->\t"); Serial.println(value);
+            char * equalPosition = strchr(msg_array,'=');
+            //Serial.println(equalPosition);
+            if(equalPosition > 0) {
+                char * pch;
+                pch = strtok (msg_array," ,-=\"");
+                String command = String((char *)pch);
+                pch = strtok (NULL, " ,-=\"");
+                String value = String((char *)pch);
+                //Serial.print(command); Serial.print("\t<-->\t"); Serial.println(value);
 
-            byte B_value[value.length()+1];
-            value.getBytes(B_value, value.length()+1);
-            //B_value[value.length()+1] = 0;
+                byte B_value[value.length()+1];
+                value.getBytes(B_value, value.length()+1);
+                //B_value[value.length()+1] = 0;
 
-            on_message(command.c_str(), B_value, value.length()+1);
+                on_message(command.c_str(), B_value, value.length()+1);
+            }
         }
-        //on_message(();
-		//if (config.DEBUG) Serial.println(msg);
-        //Serial.write(telnetClient.read());
-        bufferRead = "";
-        //delay(10);  // to avoid strange characters left in buffer
+        TELNET_Timer = millis();                // Update timer to extend telnet inactivity timeout
 }
 
 
@@ -211,7 +204,14 @@ void telnet_parse_msg() {
 void telnet_loop() {
 		blink_LED(3);
 	   //check if there are any new clients
-    if (telnetServer.hasClient()){
+    if (telnetClient.connected()) {
+        if ((millis() - TELNET_Timer) > MAX_TIME_INACTIVE) {
+            telnetClient.println("Closing Telnet session by inactivity");
+            telnetClient.stop();
+        }
+    }
+
+    if (telnetServer.hasClient()) {
         if (telnetClient && telnetClient.connected()) {
             // Verify if the IP is same than actual conection
             newClient = telnetServer.available();
@@ -225,21 +225,18 @@ void telnet_loop() {
                 newClient.stop();
                 return;
             }
-            if ((millis() - TELNET_Timer) > MAX_TIME_INACTIVE) {
-                telnetClient.println("Closing Telnet session by inactivity");
-                telnetClient.stop();
-            }
         }
         else {
             // New TCP client
             telnetClient = telnetServer.available();
-            telnetClient.setNoDelay(true); // More faster
-            telnetClient.flush();  // clear input buffer, else you get strange characters
-            TELNET_Timer = millis(); // initiate timer for inactivity
+            telnetClient.setNoDelay(true);      // Faster... ?
+            telnetClient.flush();               // clear input buffer, else you get strange characters
+            TELNET_Timer = millis();            // initiate timer for inactivity
             if (config.DEBUG) Serial.println("New telnet client!");
         }
     }
-    if (telnetClient.available()) bufferRead = telnetClient.readStringUntil('\r');
-    if (bufferRead != "") telnet_parse_msg();
+
+    if (telnetClient.available()) parse_command_msg(telnetClient.readStringUntil('\n'));
+
     yield();
 }

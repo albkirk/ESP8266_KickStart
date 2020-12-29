@@ -9,6 +9,8 @@
 #define ChipID HEXtoUpperString(ESP.getChipId(), 6)
 #define ESP_SSID String("ESP-" + ChipID)               // SSID used as Acces Point
 #define Number_of_measures 5                           // Number of value samples (measurements) to calculate average
+bool Modem_Connected = false;                          // Modem Connection state
+
 
 // The ESP8266 RTC memory is arranged into blocks of 4 bytes. The access methods read and write 4 bytes at a time,
 // so the RTC data structure should be padded to a 4-byte multiple.
@@ -24,14 +26,16 @@ struct __attribute__((__packed__)) struct_RTC {
 #if Using_ADC == false
     ADC_MODE(ADC_VCC)                       // Get voltage from Internal ADC
 #endif
-#define Default_ADC_PIN A0
 
+#define Default_ADC_PIN A0
 
 // Initialize the Webserver
 ESP8266WebServer MyWebServer(80);  
 
 // initialize WiFi Security
-WiFiSec WiFiSec(CA_CERT_PROG, CLIENT_CERT_PROG, CLIENT_KEY_PROG);
+WiFiSec wifisec(CA_CERT_PROG, CLIENT_CERT_PROG, CLIENT_KEY_PROG);
+WiFiClient secureclient = wifisec.getWiFiClient();    // Use this for secure connection
+WiFiClient unsecuclient;                    // Use this for unsecure connection
 
 
 // Battery & ESP Voltage
@@ -119,6 +123,10 @@ if (config.DHCP) {
     storage_write();
     }
 }
+}
+
+void myconfigTime(const char* tz, const char* server1, const char* server2, const char* server3) {
+    configTime(tz, server1, server2, server3);
 }
 
 void wifi_disconnect() {

@@ -1,20 +1,43 @@
 // HARWARE & SOFTWARE Version
-#define BRANDName "AlBros_Team"                         // Hardware brand name
-#define MODELName "GenBox_A"                            // Hardware model name
-#define SWVer "12.11"                                   // Major.Minor Software version (use String 01.00 - 99.99 format !)
+#define BRANDName           "AlBros_Team"               // Hardware brand name
+#define MODELName           "GenBox_A"                  // Hardware model name
+#define SWVer               "12.13"                     // Major.Minor Software version (use String 01.00 - 99.99 format !)
 
 // Power Source & Battery Level
-bool BattPowered = true;                                // Is the device battery powered?
-#define Batt_L_Thrs 15                                  // Battery level threshold [0%-100%] (before slepping forever).
+bool BattPowered =          true;                       // Is the device battery powered?
+#define Batt_L_Thrs         15                          // Battery level threshold [0%-100%] (before slepping forever).
 
 // GPIO to Function Assignment
-#define Using_ADC false                                 // will this device use the ADC? (if not it will measure the internal voltage)
-#define LED_ESP 2                                       // ESP Led is connected to GPIO 2. -1 means NOT used!
-#define DHTTYPE 2                                       // use 1 for "DHT11", 2 for "DHT22", or 3 for "AM2320" to select the DHT Model
-#define DHTPIN -1                                       // GPIO connected to DHT Data PIN. -1 means NO DHT used!
-#define SDAPIN -1                                       // GPIO connected to (AM) I2C SDA PIN. -1 means NO SDA used!
-#define SCKPIN -1                                       // GPIO connected to (AM) I2C SCK PIN. -1 means NO SCK used!
-#define BUZZER -1                                       // (Active) Buzzer pin. Suggest to use pin 0.  -1 means NOT used!
+#define Using_ADC           false                       // will this device use the ADC? (if not, ES8266 will measure the internal voltage)
+#define LED_ESP              2                          // ESP32=22, T-Call=13, -1 means NOT used!
+#define BUZZER              -1                          // (Active) Buzzer pin. Suggest to use pin 0.  -1 means NOT used!
+
+// I2C PIN Definition
+#define SDAPIN              -1                          // I2C SDA PIN. T-Call=21, -1 means NO SDA used!
+#define SCKPIN              -1                          // I2C SCK PIN. T-Call=22, -1 means NO SCK used!
+
+// DHT Definition
+#define DHTTYPE              2                          // use 1 for "DHT11", 2 for "DHT22", or 3 for "AM2320" to select the DHT Model
+#define DHTPIN              -1                          // GPIO connected to DHT Data PIN. -1 means NO DHT used!
+
+// MODEM PIN Definition
+#define MODEM_PWKEY         13                          // T-Call=4, SIM7020E=13, -1 means NOT used!
+#define MODEM_RST           -1                          // T-Call=5, -1 means NOT used!
+#define MODEM_POWER_ON      -1                          // T-Call=23, -1 means NOT used!
+#define MODEM_RX             4                          // T-Call=26, SIM7020E=4, -1 means NOT used!
+#define MODEM_TX             5                          // T-Call=27, SIM7020E=5, -1 means NOT used!
+#define GPS_RX              14                          // T-Call=xx, ESP8266=14, -1 means NOT used!
+#define GPS_TX              12                          // T-Call=xx, ESP8266=12, -1 means NOT used!
+
+// Features
+#undef ESP32
+//#define ESP8266                                       // already defined somewhere...
+
+// Define your modem:
+#define Modem                                           // Uncomment this if using (any) Modem
+//#define IP5306                                        // TTGo T-Call module uses this chip
+//#define TINY_GSM_MODEM_SIM800                         // TTGo T-Call module uses this chip
+#define TINY_GSM_MODEM_SIM7020
 
 
 void config_defaults() {
@@ -53,11 +76,15 @@ void config_defaults() {
     config.UPDATE_Port = 1880;                            // UPDATE Server TCP port
     strcpy(config.UPDATE_User, "user");                   // UPDATE Server username
     strcpy(config.UPDATE_Password, "1q2w3e4r");           // UPDATE Server password
+    strcpy(config.SIMCardPIN, "1234");                    // SIM card PIN
+    strcpy(config.APN, "internet.vodafone.pt");           // Modem (GPRS/NB-IoT) APN name 
+    strcpy(config.MODEM_User, "none");                    // APN username
+    strcpy(config.MODEM_Password, "none");                // APN password
     strcpy(config.WEB_User, "admin");                     // WEB Server username
     strcpy(config.WEB_Password, "admin");                 // WEB Server password
     config.Temp_Corr = 0.0;                               // Sensor Temperature Correction Factor, typically due to electronic self heat.
     config.LDO_Corr = 0.6;                                // Battery Voltage [volt] corrective Factor due to LDO/Diode voltage drop
-    config.HW_Module = true;                              // Is HW module plugged (ex.: GPS hardware)used / connected?
+    config.HW_Module = false;                             // Is HW module plugged (ex.: GPS hardware)used / connected?
     config.HASSIO_CFG = false;                            // Is HASSIO configured? If not, it should perform the discovery.
     config.DEBUG = true;                                  // 0 - No serial msgs, 1 - Debug msg sent to serial interface
     config.SW_Upgraded = false;                           // Is SW Upgrade completed? If not, clean the house and Update status.

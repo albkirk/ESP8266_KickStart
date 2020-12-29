@@ -43,3 +43,27 @@ void custom_update(){
     yield();
 //    mqtt_dump_data(mqtt_pathtele, "Telemetry");
 }
+
+
+
+// TELNET related actions
+
+
+void parse_at_command(String msg) {
+    #ifdef Modem
+        msg.remove(0, 2);       // to remove "AT"
+        modem.sendAT(msg);
+        String res = "";
+        unsigned long timeout = millis();
+        while ( (millis() - timeout < 1000) && modem.stream.available() < 0 ) yield();
+        timeout = millis();
+        while ((millis() - timeout < 1000)) {
+            if (modem.stream.available() > 0) {
+                res = modem.stream.readStringUntil('\n');
+                telnet_println(res);
+                timeout = millis();
+            }
+        }
+    #endif
+    yield();
+}
