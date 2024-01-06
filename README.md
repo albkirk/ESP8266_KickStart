@@ -1,4 +1,6 @@
-# ESP8266 12F Project "Kick Start" Template
+# ESP8266 12F Project "Kick Start" Template -- #DEPRECATED#
+
+Use this repository: https://github.com/albkirk/ESP-KickStart
 
 
 This is a personal project to create a starting point for all my ESP projects.
